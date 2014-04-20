@@ -1,5 +1,4 @@
-## Put comments here that give an overall description of what your
-## functions do
+## Put comments here that give an overall description of what your functions do
 
 ## Write a short comment describing this function
 makeCacheMatrix <- function(x = matrix()) {
@@ -27,7 +26,7 @@ cacheSolve <- function(x, ...) {
         return(invM)
     }
     data <- x$get()
-    invM <-solve(data) # or ginv(data) in MASS package
+    invM <-solve(data) # or using ginv(data) in MASS package
     x$setinvM(invM)
     invM
 }
