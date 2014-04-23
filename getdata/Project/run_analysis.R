@@ -1,12 +1,16 @@
 
-
+## download and unzip files
 if(!file.exists("./UCI_HAR_Dataset/")){
-  dataURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
-  temp <-tempfile()
-  download.file(dataURL, temp, method="curl")
+    dir.create("./UCI_HAR_Dataset")
+    dataURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+    temp <-tempfile()
+    download.file(dataURL, temp, method="curl")
+    unzip(temp,exdir=".")
+    ## rename dir-name ""UCI HAR Dataset" to "UCI_HAR_Dataset"
+    # mv UCI\ HAR\ Dataset/ UCI_HAR_Dataset
+    file.rename("UCI HAR Dataset", "UCI_HAR_Dataset")
+    unlink(temp)
 }
-#unz(temp, "a.d/")
-#data <-read.table(unz(temp, filename="UCI_HAR_Dataset.dat"))
 
 # subject_*.txt, one of 30 volunteers
 # X_train.txt/X_test.txt, 561-feature vector with time and frequencey domain variable
