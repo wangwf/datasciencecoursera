@@ -31,21 +31,27 @@ testY <- read.table("UCI_HAR_Dataset/test/y_test.txt", nrows=nsample)
 if( length(testSubject) != nrow(testX)){message("Error: Mismatch between subject_test.txt and X_test.txt")}
 if( length(testSubject) != nrow(testY)){message("Error: Mismatch between subject_test.txt and y_test.txt")}
 
+features <-read.table("./UCI_HAR_Dataset/features.txt") #,colClasses="character")
+
+#selectedFeatures<-features[grepl("mean()|std()",features[,2]),]
+
+selected<-(grepl("mean()",features[,2],fixed=TRUE)|grepl("std()",features[,2],fixed=TRUE))
+selectedFeatures<-features[selected,]
 
 ## 1. Merges the training and the test sets to create one data set
-mergeX <- rbind(trainX[,1:6], testX[,1:6])
+mergeX <- rbind(trainX[,selectedFeatures[,1]], testX[,selectedFeatures[,1]])
 mergeY <- rbind(trainY, testY)
 
 
 ## 2. Extracts only the measurements on the mean and standard deviation for each measurement. 
 #means <- lapply(trainX, mean)
 #sds   <- lapply(trainX, sd)
-mergeX<- mergeX[,1:6]  #  mean (x,y,x) and std (x,y,z)
+#mergeX<- mergeX[,selectedFeatures[,1]]  #  mean (x,y,x) and std (x,y,z)
 
 ## 3. Uses descriptive activity names to name the activities in the data set
 
-newNames <- c("tBodyAccMeanX","tBodyAccMeanY","tBodyAccMeanZ","tBodyAccStdX","tBodyAccStdY","tBodyAccStdZ")
-names(mergeX) <- newNames
+#newNames <- c("tBodyAccMeanX","tBodyAccMeanY","tBodyAccMeanZ","tBodyAccStdX","tBodyAccStdY","tBodyAccStdZ")
+names(mergeX) <- selectedFeatures[,2]
 
 ## 4. Appropriately labels the data set with descriptive activity names. 
 rownames(mergeX) <- as.character(mergeY)
