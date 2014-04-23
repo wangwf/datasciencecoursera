@@ -1,7 +1,10 @@
-#if(!file.exists("./wearable")){dir.create("./wearable")}
-dataURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
-temp<-tempfile()
-download.file(dataURL, temp, method="curl")
+
+
+if(!file.exists("./UCI_HAR_Dataset/")){
+  dataURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+  temp <-tempfile()
+  download.file(dataURL, temp, method="curl")
+}
 #unz(temp, "a.d/")
 #data <-read.table(unz(temp, filename="UCI_HAR_Dataset.dat"))
 
@@ -9,7 +12,7 @@ download.file(dataURL, temp, method="curl")
 # X_train.txt/X_test.txt, 561-feature vector with time and frequencey domain variable
 # y_train.txt/y_test.txt, 1:6, one of six activities ( (WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING))
 # 
-nsample=100
+nsample=100 #100
 trainSubject <-readLines("./UCI_HAR_Dataset/train//subject_train.txt",n=nsample)
 trainX <- read.table("UCI_HAR_Dataset/train/X_train.txt",nrows=nsample)
 trainY <- read.table("UCI_HAR_Dataset/train/y_train.txt",nrows=nsample)
@@ -26,7 +29,7 @@ if( length(testSubject) != nrow(testY)){message("Error: Mismatch between subject
 
 
 ## 1. Merges the training and the test sets to create one data set
-mergeX <- rbind(trainX, testX)
+mergeX <- rbind(trainX[,1:6], testX[,1:6])
 mergeY <- rbind(trainY, testY)
 
 
