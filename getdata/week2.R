@@ -111,7 +111,7 @@ json2[1,1:4]
 
 
 ##Q2
-acs<-read.csv("getdata//getdata-data-ss06pid.csv")
+acs<-read.csv("getdata/ss06pid.csv")
 sqldf("select pwgtp1 from acs where AGEP < 50")
 ## Q3  unique(acs$AGEP)
 sqldf("select distinct AGEP from acs ")
@@ -124,7 +124,7 @@ close(con)
 nchar(htmlCode[c(10,20,30,100)])
 
 ## Q5
-con<-url("https://d396qusza40orc.cloudfront.net/getdata%2Fwksst8110.for")
+con<-url("https://d396qusza40orc.cloudfront.net/wksst8110.for")
 htmlCode = readLines(con)
 close(con)
 #htmlCode
