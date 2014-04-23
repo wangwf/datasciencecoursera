@@ -66,3 +66,21 @@ dl = date()
 
 class(dl)
 
+d2 =Sys.Date()
+##  %d = day as number(0-31), %a = abbreviated weekday, %A = unabbreviated weekday,
+##  %m = month (00-12),       %b = abbreviated month,   %y = 2 digit year, %Y = four digit year
+ formate(d2, "%a %b $d")
+
+## creating dates
+x = c("1jan1960, "2jan1960, "31mar1960","30jul1960")
+z = as.Date(x, "%d%b%Y")
+z
+z[1] - z[2]
+
+##converting to Julian
+weekday(d2) ## "Sunday
+
+##Lubridata
+
+
+

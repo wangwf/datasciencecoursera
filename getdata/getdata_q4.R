@@ -53,3 +53,12 @@ d<-as.character(mergedata[,13])
 length(grep("^Fiscal year end: June*",d))
 
 
+##q 5
+library(quantmod)
+amzn = getSymbols("AMZN",auto.assign=FALSE)
+sampleTimes = index(amzn) 
+
+z<-format(sampleTimes,"%a %Y")
+length(grep("*2012", z))
+length(z[z=="Mon 2012"])
+
