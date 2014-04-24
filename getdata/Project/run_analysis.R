@@ -16,32 +16,34 @@ if(!file.exists("./UCI_HAR_Dataset/")){
 # X_train.txt/X_test.txt, 561-feature vector with time and frequencey domain variable
 # y_train.txt/y_test.txt, 1:6, one of six activities ( (WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING))
 # 
-nsample=100 #100
+
+features <-read.table("./UCI_HAR_Dataset/features.txt") #,colClasses="character")
+#selectedFeatures<-features[grepl("mean()|std()",features[,2]),]
+#  select feature with mean() or std(),  excluding meanFreq()
+selected<-(grepl("mean()",features[,2],fixed=TRUE)|grepl("std()",features[,2],fixed=TRUE))
+selectedFeatures<-features[selected,]
+
+nsample=1000L #100
 trainSubject <-readLines("./UCI_HAR_Dataset/train//subject_train.txt",n=nsample)
 trainX <- read.table("UCI_HAR_Dataset/train/X_train.txt",nrows=nsample)
 trainY <- read.table("UCI_HAR_Dataset/train/y_train.txt",nrows=nsample)
 if( length(trainSubject) != nrow(trainX)){message("Error: Mismatch between subject_train.txt and X_train.txt")}
 if( length(trainSubject) != nrow(trainY)){message("Error: Mismatch between subject_train.txt and y_train.txt")}
+trainSample <- cbind(trainSubject, trainY, trainX[,selectedFeatures[,1]])
 
 testSubject <-readLines("./UCI_HAR_Dataset/test//subject_test.txt", n=nsample)
 testX <- read.table("UCI_HAR_Dataset/test/X_test.txt", nrows=nsample)
 testY <- read.table("UCI_HAR_Dataset/test/y_test.txt", nrows=nsample)
-
 ## check length of format of subject*.txt and *_train.txt
 if( length(testSubject) != nrow(testX)){message("Error: Mismatch between subject_test.txt and X_test.txt")}
 if( length(testSubject) != nrow(testY)){message("Error: Mismatch between subject_test.txt and y_test.txt")}
 
-features <-read.table("./UCI_HAR_Dataset/features.txt") #,colClasses="character")
+testSample <- cbind(testSubject, testY, testX[,selectedFeatures[,1]])
 
-#selectedFeatures<-features[grepl("mean()|std()",features[,2]),]
-
-selected<-(grepl("mean()",features[,2],fixed=TRUE)|grepl("std()",features[,2],fixed=TRUE))
-selectedFeatures<-features[selected,]
 
 ## 1. Merges the training and the test sets to create one data set
-mergeX <- rbind(trainX[,selectedFeatures[,1]], testX[,selectedFeatures[,1]])
-mergeY <- rbind(trainY, testY)
-
+#mergeX <- rbind(trainX[,selectedFeatures[,1]], testX[,selectedFeatures[,1]]); mergeY <- rbind(trainY, testY)
+mergeSample <- rbind(trainSample, testSample)
 
 ## 2. Extracts only the measurements on the mean and standard deviation for each measurement. 
 #means <- lapply(trainX, mean)
@@ -51,10 +53,16 @@ mergeY <- rbind(trainY, testY)
 ## 3. Uses descriptive activity names to name the activities in the data set
 
 #newNames <- c("tBodyAccMeanX","tBodyAccMeanY","tBodyAccMeanZ","tBodyAccStdX","tBodyAccStdY","tBodyAccStdZ")
-names(mergeX) <- selectedFeatures[,2]
+names(mergeSample) <- c("subject", "activity",selectedFeatures[,2])
 
 ## 4. Appropriately labels the data set with descriptive activity names. 
-rownames(mergeX) <- as.character(mergeY)
+#rownames(mergeX) <- as.character(mergeY)
 
 ## 5. Creates a second, independent tidy data set with the average of each variable for each activity and each subject. 
 # write.table(newData)
+
+#carMelt <- melt(mtcars, id=c("carname", "gear", "cyl"), measure.vars=c("mpg","hp"))
+##Casting data frames
+#cylData <-dcast(carMelt, cyl ~ variable)
+
+
