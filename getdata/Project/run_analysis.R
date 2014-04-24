@@ -12,6 +12,8 @@ downloadFiles<-function(
         # mv UCI\ HAR\ Dataset/ UCI_HAR_Dataset
         file.rename("UCI HAR Dataset", "UCI_HAR_Dataset")
         unlink(temp)
+    }else{
+      message("UCI_HAR_Dataset already downloaded.")
     }
 }
 
@@ -19,24 +21,15 @@ downloadFiles<-function(
 # X_train.txt/X_test.txt, 561-feature vector with time and frequencey domain variable
 # y_train.txt/y_test.txt, 1:6, one of six activities ( (WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING))
 
+# ReadData and 
 # Extracts only the measurements on the mean and standard deviation for each measurement. 
-extactFeatures <-function(){
-    features <-read.table("./UCI_HAR_Dataset/features.txt") #,colClasses="character")
-    #selectedFeatures<-features[grepl("mean()|std()",features[,2]),]
-    #  select feature with mean() or std(),  excluding meanFreq()
-    # grepl("mean\\(\\)",features[,2]),
-    selected<-(grepl("mean()",features[,2],fixed=TRUE)
-               |grepl("std()",features[,2],fixed=TRUE))
-    selectedFeatures<-features[selected,]
-}
-
-readData <- function(pathSuffix = "UCI_HAR_Dataset/train", fileSuffix = "train", nsampleSize = -1L){
+readData <- function(pathPrefix = "UCI_HAR_Dataset/train", fileSuffix = "train", nsampleSize = -1L){
     #read subject
-    subject <- read.table(paste0(pathSuffix,"/subject_",fileSuffix,".txt"),nrows=nsampleSize,
+    subject <- read.table(paste0(pathPrefix,"/subject_",fileSuffix,".txt"),nrows=nsampleSize,
                          col.names=c("subjectID"))
 
     # read the measurement variables -- features
-    features <- read.table(paste0(pathSuffix,"/../features.txt"),
+    features <- read.table(paste0(pathPrefix,"/../features.txt"),
                            col.names=c("featureID","featureName"))
 
     #Extracts only the measurements on the mean and standard deviation for each measurement
@@ -44,12 +37,12 @@ readData <- function(pathSuffix = "UCI_HAR_Dataset/train", fileSuffix = "train",
     selectedFeatures <- features[grepl("mean\\(\\)|std\\(\\)", features$featureName),]
 
     #read X data, and subseting
-    data <- read.table(paste0(pathSuffix,"/X_",fileSuffix,".txt"), nrows=nsampleSize,
+    data <- read.table(paste0(pathPrefix,"/X_",fileSuffix,".txt"), nrows=nsampleSize,
                     col.names=features$featureName)
     data <- data[,selectedFeatures$featureID]
 
     #read y data -- activities
-    Y <- read.table(paste0(pathSuffix,"/y_",fileSuffix,".txt"), nrows=nsampleSize,
+    Y <- read.table(paste0(pathPrefix,"/y_",fileSuffix,".txt"), nrows=nsampleSize,
                 col.names=c("activityID"))
     
     # append the length of activity and subject
@@ -60,23 +53,18 @@ readData <- function(pathSuffix = "UCI_HAR_Dataset/train", fileSuffix = "train",
     data
 }
 
-mergeData<-function(nsampleSize= -1L){
+#Merge the training and the test sets to create one data set.
+mergeData<-function(){
+    nsampleSize = -1L  # set small number for testing
     trainData <- readData("UCI_HAR_Dataset/train", "train", nsampleSize)
     testData  <- readData("UCI_HAR_Dataset/test","test", nsampleSize)
     mergeData <-rbind(trainData, testData)
     mergeData
 }
 
-## 2. Extracts only the measurements on the mean and standard deviation for each measurement. 
+
 ## 3. Uses descriptive activity names to name the activities in the data set
 ## 4. Appropriately labels the data set with descriptive activity names. 
-## 5. Creates a second, independent tidy data set with the average of each variable for each activity and each subject. 
-# write.table(newData)
-
-#carMelt <- melt(mtcars, id=c("carname", "gear", "cyl"), measure.vars=c("mpg","hp"))
-##Casting data frames
-#cylData <-dcast(carMelt, cyl ~ variable)
-
 activityLabel <- function(data, labelFile="UCI_HAR_Dataset//activity_labels.txt"){
     activityLabels <- read.table(labelFile,col.names=c("activityID","activityName"))
     activityLabels$activityName <- as.factor(activityLabels$activityName)
@@ -84,19 +72,20 @@ activityLabel <- function(data, labelFile="UCI_HAR_Dataset//activity_labels.txt"
     dataLabled
 }
 
-getTidyDataset <- function(mergeData){
+## 5. Creates a second, independent tidy data set with the average of each variable for each activity and each subject. 
+createTidyDataset <- function(data){
     library(reshape2)
     #melt the dataset
     ids <- c("activityID","activityName", "subjectID")
-    measureVar <-setdiff(colnames(mergeData), ids)
-    meltedData <- melt(mergeData, iid=ids, measure.vars=measureVar)
+    measureVar <-setdiff(colnames(data), ids)
+    meltedData <- melt(data, iid=ids, measure.vars=measureVar)
     
     #casting
     dcast(meltedData, activityName + subjectID ~variable, mean)
 }
 
 #create a tidy data file and save it
-writeTidyDataFile <-function(outputname="tidydata.txt"){
-    tidyData <- getTidyDataset( activityLabel(mergeData()))
-    write.table(tidyData, outputname)
+writeTidyDataFile <-function(outputfile="tidydata.txt"){
+    tidyData <- createTidyDataset( activityLabel(mergeData()))
+    write.table(tidyData, outputfile)
 }
