@@ -89,3 +89,7 @@ writeTidyDataFile <-function(outputfile="tidydata.txt"){
     tidyData <- createTidyDataset( activityLabel(mergeData()))
     write.table(tidyData, outputfile)
 }
+
+print("--------------")
+writeTidyDataFile("tidydata.txt")
+

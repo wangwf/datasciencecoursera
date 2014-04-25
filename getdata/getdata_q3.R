@@ -1,7 +1,7 @@
 
 ##question 1
 url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Fss06hid.csv"
-filename = "Fss06hid.csv"
+filename = "ss06hid.csv"
 ## describing the variable name
 ##https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FPUMSDataDict06.pdf
 
