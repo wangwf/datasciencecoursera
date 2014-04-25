@@ -72,4 +72,36 @@ readA
 h5write(c(12, 13, 14), "example.h5", "foo/A", index = list(1:3,1))
 h5read("example.h5", "foo/A")
 
-#### 
+#### WEB api
+## Getting data off webpages -- readLines()
+con = url("http://scholar.google.com/citations?user=HI-I6C0AAAAJ")
+htmlCode = readLines(con)
+close(con)
+htmlCode
+
+## Parsing with XML
+library(XML)
+url <- "http://scholar.google.com/citations?user=HI-I6C0AAAAJ"
+html <- htmlTreeParse(url, useInternalNodes=T)
+xpathSApply(html, "//title", xmlValue)
+xpathSApply(html, "//td[@id='col-citedby']", xmlValue)
+
+## GET from the httr package
+library(httr); html2 = GET(url)
+content2 = content(html2, as ="text")
+parsedHtml = htmlParse(content2, asText =TRUE)
+xpathSApply(parsedHtml, "//title", xmlValue)
+
+## Accessing websites with password
+pg1 = GET("http://httpbin.org/basic-auth/user/passwd")
+pg1
+pg2 = GET("http://httpbin.org/basic-auth/user/passwd",
+          authenticate("user", "passwd"))
+pg2
+
+names(pg2)
+
+## Using handles
+google = handle("http://google.com")
+pg1 = GET(handle=google, path="/")
+pg2 = GET(handle=google, path="search")
