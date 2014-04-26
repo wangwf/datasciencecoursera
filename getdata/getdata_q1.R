@@ -68,7 +68,7 @@ Q4<- function(){
 #Q5
 Q5 <- function(){
     #library(plyr)
-    #library(data.table)
+    library(data.table)
     library(microbenchmark)
     url5="https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Fss06pid.csv"
     filename5="ss06pid.csv"
