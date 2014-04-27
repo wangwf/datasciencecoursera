@@ -97,3 +97,53 @@ randomForest(){
     # minus maximum proportion of votes for other classes.
     plot(margin(rf, testData$Species))
 }
+
+lineraRegression <- function(){
+    year <-rep(2008:2010, each=4)
+    quarter <- rep(1:4, 3)
+    cpi <- c(162.2, 164.6, 166.5, 166.0,
+             166.2, 167.0, 168.6, 169.5,
+             171.0, 172.1, 173.3, 174.0)
+    plot(cpi, xaxt="n", ylab="CPI", xlab="")
+    # draw x-axis
+    axis(1, labels=paste(year,quarter,sep="Q"), at=1:12, las=3)
+    
+    cor(year, cpi)
+    cor(quarter,cpi)
+    
+    fit <-lm(cpi ~ year + quarter)
+    attributes(fit)
+    fit
+    residuals(fit) # fit$residuals
+    
+    #prediction for 2011
+    cpi2011 <- fit$coefficients[[1]] + fit$coefficients[[2]]*2011 + fit$coefficients[[3]]*(1:4)
+    cpi2011
+    data2011 <- data.frame(year=2011, quarter=1:4)
+    cpi2011 <-predict(fit, newdata=data2011)
+    
+    plot(fit)
+    
+
+}
+
+#generalized Linear Regression model generalizes linear regression by allowing the linear
+# model to be replaced to the response variable via a link function and allowing the
+# magnitude of the variance of each measurement to be a function of its predicted values.
+generalizedLinearRegression() <- function(){
+    data("bodyfat", "mboost")
+    myFormula <- DEXfat ~ age + waistcirc + hipcirc + elbowbreadth + kneebreadth
+    bodyfat.glm <- glm(myFormula, family=gaussian("logit"), data = bodyfat)
+    # family=gauusian("log")
+    summary(bodyfat.glm)
+    
+    pred <- predict(bodyfat.glm, type="response")
+    plot(bodyfat$DEXfat, pred, xlab="Observed Values", ylab ="Predicted Values")
+    abline(a=0, b =1)
+
+}
+
+# Non-Linear Regression nls()
+#
+
+### Clustering

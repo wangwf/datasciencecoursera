@@ -1,33 +1,89 @@
 http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones#
 
-downloadFiles():
-    check whether the data repository exists, if not, download and unzip it.
+These signals were used to estimate variables of the feature vector for each pattern:    
+   *  The first letter in feature name "t" indicats time-domain signal, while "f" for frequency domain signal.
+   *  "Acc-" from accelerometer, "Gyro-" from gyroscope. 
+   *  '-XYZ' is used to denote 3-axial signals in the X, Y and Z directions.
+   *  'mag' for the magitude of these three-dimensional signals, using the Euclidean norm  
+   *   mean()-- Mean value; std()-- Standard deviation.
 
 
-readData(pathPrefix, fileSuffix, nsampleSize ):
-   - function parameters:
-         pathPrefix = "UCI_HAR_Dataset/train" or "UCI_HAR_Dataset/train"
-         fileSuffix = "train" or "test"
-         nsampleSize: default -1L for all dataset.
-   - read data files into R.
-         subject_*.txt: an identifier of the subject who carried out the experiement
-         feature.txt:   ID and names of 561-features from measurement. For this project, only extract
-                        For this project, only extract the measurement on the mean and stand deviation for each measurement.
-                        "meanFreq()" is excluded for convenience.
-         X_*.txt:       data of 561-features.
-         y_*.txt:       the label of 6 activities (WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING)
-   - feature extracts only  the measurement on the mean and stand deviation for each measurement
-   - column-bind, labels the data set with descriptivie activity name, and subject identifier.
+Acceleration signal was  separated into body and gravity acceleration signals (tBodyAcc-XYZ and tGravityAcc-XYZ) using another low pass Butterworth filter with a corner frequency of 0.3 Hz
 
-mergData():
-  - read both training and test sets
-  - Merge the training and the test to create one data set, mergeData
+the body linear acceleration and angular velocity were derived in time to obtain Jerk signals (tBodyAccJerk-XYZ and tBodyGyroJerk-XYZ).
 
-activityLabel(data, labelFile):
-  - label the data set with descriptively names
+tBodyAcc-mean()-X
+tBodyAcc-mean()-Y
+tBodyAcc-mean()-Z
+tBodyAcc-std()-X
+tBodyAcc-std()-Y
+tBodyAcc-std()-Z
 
-createTidyDataset(data):
-  - melt and dcast data
+tGravityAcc-mean()-X
+tGravityAcc-mean()-Y
+tGravityAcc-mean()-Z
+tGravityAcc-std()-X
+tGravityAcc-std()-Y
+tGravityAcc-std()-Z
 
-writeTidyDataFile(outputfile):
-  - write tidy data to a local file
+tBodyAccJerk-mean()-X
+tBodyAccJerk-mean()-Y
+tBodyAccJerk-mean()-Z
+tBodyAccJerk-std()-X
+tBodyAccJerk-std()-Y
+tBodyAccJerk-std()-Z
+
+tBodyGyro-mean()-X
+tBodyGyro-mean()-Y
+tBodyGyro-mean()-Z
+tBodyGyro-std()-X
+tBodyGyro-std()-Y
+tBodyGyro-std()-Z
+
+tBodyGyroJerk-mean()-X
+tBodyGyroJerk-mean()-Y
+tBodyGyroJerk-mean()-Z
+tBodyGyroJerk-std()-X
+tBodyGyroJerk-std()-Y
+tBodyGyroJerk-std()-Z
+
+tBodyAccMag-mean()
+tBodyAccMag-std()
+tGravityAccMag-mean()
+tGravityAccMag-std()
+tBodyAccJerkMag-mean()
+tBodyAccJerkMag-std()
+tBodyGyroMag-mean()
+tBodyGyroMag-std()
+tBodyGyroJerkMag-mean()
+tBodyGyroJerkMag-std()
+
+fBodyAcc-mean()-X
+fBodyAcc-mean()-Y
+fBodyAcc-mean()-Z
+fBodyAcc-std()-X
+fBodyAcc-std()-Y
+fBodyAcc-std()-Z
+
+fBodyAccJerk-mean()-X
+fBodyAccJerk-mean()-Y
+fBodyAccJerk-mean()-Z
+fBodyAccJerk-std()-X
+fBodyAccJerk-std()-Y
+fBodyAccJerk-std()-Z
+
+fBodyGyro-mean()-X
+fBodyGyro-mean()-Y
+fBodyGyro-mean()-Z
+fBodyGyro-std()-X
+fBodyGyro-std()-Y
+fBodyGyro-std()-Z
+
+fBodyAccMag-mean()
+fBodyAccMag-std()
+fBodyBodyAccJerkMag-mean()
+fBodyBodyAccJerkMag-std()
+fBodyBodyGyroMag-mean()
+fBodyBodyGyroMag-std()
+fBodyBodyGyroJerkMag-mean()
+fBodyBodyGyroJerkMag-std()
