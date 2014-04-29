@@ -13,7 +13,7 @@ downloadFiles<-function(
         file.rename("UCI HAR Dataset", "UCI_HAR_Dataset")
         unlink(temp)
     }else{
-      message("UCI_HAR_Dataset already downloaded.")
+        message("UCI_HAR_Dataset already downloaded.")
     }
 }
 

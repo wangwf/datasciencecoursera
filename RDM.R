@@ -147,3 +147,78 @@ generalizedLinearRegression() <- function(){
 #
 
 ### Clustering
+#
+# k-means clustering
+kmeansClustering <- function(){
+  iris2<- iris
+  iris2$Species <- NULL
+  (kmeans.result <- kmeans(iris2, 3))
+  table(iris$Species, kmeans.result$cluster)
+  
+  plot(iris2[c("Sepal.Length", "Sepal.Width")], col = kmeans.result$cluster)
+  points(kmeans.result$centers[,c("Sepal.Length","Sepal.Width")], col = 1:3, pch=8, cex =2)
+  
+}
+
+### K-Medoids Clustering
+#  similar to k-mean, but a cluster is represented with the object closest to the center of the cluster.
+kMedoidsClustering <- function(){
+  library(fpc)
+  pamk.result <- pamk(iris2)
+  #
+  pamk.result$nc
+  table(pamk.result$pamobject$clustering, iris$Species)
+  layout(matrix(c(1,2), 1, 2)) # 2 graphs per page
+  plot(pamk.result$pamobject)
+  layout(matrix(1))
+  
+  pam.result <- pam(iris2, 3)
+  table(pam.result$clustering, iris$Species)
+  layout(matrix(c(1,2), 1, 2)) # 2 graphs per page
+  plot(pam.result$pamobject)
+  layout(matrix(1))
+
+}
+
+hierarchicalClustering <-function(){
+  idx <- sample(1:dim(iris)[1], 40)
+  irisSample <- iris[idx, ]
+  irisSample$Species <- NULL
+  hc <- hclust(dist(irisSample), method="ave")
+  plot(hc, hang = -1, labels = iris$Species[idx])
+  #cut tree into 3 clusters
+  rect.hclust(hc, k=3)
+  groups <- cutree(hc, k=3)
+  
+  
+}
+
+#density-base Clustering
+densityBasedClustering <-function(){
+  library(fpc)
+  iris2 <- iris[-5] # remove class tags
+  
+
+  ds <- dbscan(iris2, eps=0.42, MinPts=5)
+  # compare clusters with original class labels
+  table(ds$cluster, iris$Species)
+  
+  plot(ds, iris2)
+  plot(ds, iris2[c(1,4)])
+  plotcluster(iris2, ds$cluster)
+  
+  set.seed(435)
+  idx <- sample(1:nrow(iris), 10)
+  newData <- iris[idx,-5]
+  newData <- newData + matrix(runif(10*4, min=0, max=0.2), nrow=10, ncol=4)
+  # label new data
+  myPred <- predict(ds, iris2, newData)
+  # plot result
+  plot(iris2[c(1,4)], col=1+ds$cluster)
+  points(newData[c(1,4)], pch="*", col=1+myPred, cex=3)
+  # check cluster labels
+  table(myPred, iris$Species[idx])
+  
+  
+}
+
