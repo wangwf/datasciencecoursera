@@ -163,34 +163,33 @@ kmeansClustering <- function(){
 ### K-Medoids Clustering
 #  similar to k-mean, but a cluster is represented with the object closest to the center of the cluster.
 kMedoidsClustering <- function(){
-  library(fpc)
-  pamk.result <- pamk(iris2)
+    library(fpc)
+    pamk.result <- pamk(iris2)
   #
-  pamk.result$nc
-  table(pamk.result$pamobject$clustering, iris$Species)
-  layout(matrix(c(1,2), 1, 2)) # 2 graphs per page
-  plot(pamk.result$pamobject)
-  layout(matrix(1))
+    pamk.result$nc
+    table(pamk.result$pamobject$clustering, iris$Species)
+    layout(matrix(c(1,2), 1, 2)) # 2 graphs per page
+    plot(pamk.result$pamobject)
+    layout(matrix(1))
   
-  pam.result <- pam(iris2, 3)
-  table(pam.result$clustering, iris$Species)
-  layout(matrix(c(1,2), 1, 2)) # 2 graphs per page
-  plot(pam.result$pamobject)
-  layout(matrix(1))
-
+    pam.result <- pam(iris2, 3)
+    table(pam.result$clustering, iris$Species)
+    layout(matrix(c(1,2), 1, 2)) # 2 graphs per page
+    plot(pam.result$pamobject)
+    layout(matrix(1))
 }
 
 hierarchicalClustering <-function(){
-  idx <- sample(1:dim(iris)[1], 40)
-  irisSample <- iris[idx, ]
-  irisSample$Species <- NULL
-  hc <- hclust(dist(irisSample), method="ave")
-  plot(hc, hang = -1, labels = iris$Species[idx])
-  #cut tree into 3 clusters
-  rect.hclust(hc, k=3)
-  groups <- cutree(hc, k=3)
-  
-  
+    data(iris)
+    idx <- sample(1:dim(iris)[1], 40)
+    irisSample <- iris[idx, ]
+    irisSample$Species <- NULL
+    hc <- hclust(dist(irisSample), method="ave")
+    plot(hc, hang = -1, labels = iris$Species[idx])
+    #cut tree into 3 clusters
+    rect.hclust(hc, k=3)
+    groups <- cutree(hc, k=3)
+   
 }
 
 #density-base Clustering

@@ -94,12 +94,14 @@ pg2 = GET(handle=google,path="search")
 
 
 #### Twitter API ####
+twitterKey <-read.table("./twitter.txt", colClasses="character")
+
 myapp = oauth_app("twitter",
-                  key="LZMG9RxP4hFiDowxYMQ",
-                  secret="Ap8NNB1lEJLb03s25k7QK6HhfiEcnHcOaebn6mpXo0")
+                  key=twitterKey$V2[[1]],
+                  secret=twitterKey$V2[[2]])
 sig = sign_oauth1.0(myapp,
-                    token="369198012-s0YaD6OjfXhKK5yYAdB8JfJkyrMrOMqPSYeh38Kq",
-                    token_secret="rpITlQtCH409EOzKyc0as0HbBLqFuRJoqwIBmPr9P4")
+                    token = twitterKey$V2[[3]],
+                    token_secret=twitterKey$V2[[4]])
 
 homeTL=GET("https://api.twitter.com/1.1/statuses/home_timeline.json",sig)
 
