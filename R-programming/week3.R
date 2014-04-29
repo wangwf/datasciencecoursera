@@ -1,18 +1,58 @@
+##
+## lapply: Loop over a list and evaluate a function on each element
+## sapply: Same as lapply but try to simplify the result
+## apply:  Apply a function over the margin of an array
+## tapply: Apply a function over subsets of a vector
+## mapply: Multivariate version of lapply
+#
+#  An auxiliary function split is also useful, particularly in conjunction with lapply.
+
 x<-list(a=1:5, b=rnorm(10))
 lapply(x,mean)
 
 lapply(x, runif, min=0,max=10)
 
+x <- list(a = matrix(1:4, 2, 2), b = matrix(1:6, 3, 2))
 lapply(x, function(elt) elt[,1])
+
+## 
+## sapply:
+##
+## apply: is used to evaluate a function (ofter an anonymous one) over the margins of an array
+##   It is often used to apply a function to the rows or columns of a matrix
+##   It can be used with general arrays, e.g. taking the average of an array of matrices.
+##   It is not really faster than writing a loop, but it works in one line.
+##
+##    x is matrix
+##      rowSums = apply(x, 1, sum)
+##      rowMeans= apply(x, 1, mean)
+##      colSums = apply(x, 2, sum)
+##      colMeans= apply(x, 2, mean)
+##
+## Quantiles of the rows of a matrix
+x <- matrix(rnorm(200), 20, 10)
+apply(x, 1, quantile, probs = c(0.25, 0.75))
+
+# average amtrix in an array
+a <- array(rnorm(2*2*10), c(2, 2, 10))
+apply(a, c(1,2), mean)
 
 
 ## tapply
 x<-c(rnorm(10), runif(10), rnorm(10,1))
 f<-gl(3,10)
-tapply(x, f, mean)
+# take group means without simplification
+tapply(x, f, mean, simplify = FALSE)
+# find group ranges
+tapply(x, f, range)
 
-## split()
+## split() takes a vector or other objects and splits it into groups determined by a factor or list of factors
+#
 str(split)
+x <- c(rnorm(10), runif(10), rnorm(10,1))
+f <- gl(3,10)
+split(x,f)
+lapply(split(x,f), mean)
 
 library(datasets)
 head(airquality)
