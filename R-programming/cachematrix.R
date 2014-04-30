@@ -1,6 +1,7 @@
 ## Put comments here that give an overall description of what your functions do
 
-## Write a short comment describing this function
+##
+## function to create a matrix
 makeCacheMatrix <- function(x = matrix()) {
     invM <- NULL
     set <- function(y){
@@ -16,8 +17,8 @@ makeCacheMatrix <- function(x = matrix()) {
 }
 
 
-## Write a short comment describing this function
-
+## if the inverse-matrix is null, create one with solve()/ginv()
+## otherwise use cached value
 cacheSolve <- function(x, ...) {
         ## Return a matrix that is the inverse of 'x'
     invM <- x$getinvM()
