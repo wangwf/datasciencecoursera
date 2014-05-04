@@ -60,6 +60,7 @@ myCorpus <- tm_map(myCorpus, removeWords, myStopwords)
 # However, after that, one may want to complete the stems to their original forms,
 # so that the words would look "normal".
 
+#install.packages("SnowballC")
 dictCorpus <- myCorpus
 # stem words in a text document with the snowball stemmers,
  # which requires packages Snowball, RWeka, rJava, RWekajars
@@ -70,8 +71,7 @@ inspect(myCorpus[1:3]) #(Some details are removed to make it short. Same applies
 # stem completion
  myCorpus <- tm_map(myCorpus, stemCompletion, dictionary=dictCorpus)
 
-Print the first three documents in the built corpus.
-
+#Print the first three documents in the built corpus.
  inspect(myCorpus[1:3])
 
 #Something unexpected in the above stemming and stem completion is that,
@@ -81,7 +81,6 @@ Print the first three documents in the built corpus.
 
 
 #Building a Document-Term Matrix
-
 myDtm <- TermDocumentMatrix(myCorpus, control = list(minWordLength = 1))
 inspect(myDtm[266:270,31:40])
 
@@ -111,8 +110,8 @@ findFreqTerms(myDtm, lowfreq=10)
  # calculate the frequency of words
  v <- sort(rowSums(m), decreasing=TRUE)
  myNames <- names(v)
- k <- which(names(v)=="miners")
- myNames[k] <- "mining"
+ k <- which(names(v)=="work") # "miners")
+ myNames[k] <- "worker" #"mining"
  d <- data.frame(word=myNames, freq=v)
  wordcloud(d$word, d$freq, min.freq=3)
 
