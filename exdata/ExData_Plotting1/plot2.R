@@ -6,7 +6,7 @@ downloadFiles()
 hpc <- readData()
 
 
-### plot2
+### plot2: Global active power versus time
 plot2 <- function(){
 
     ### plot2

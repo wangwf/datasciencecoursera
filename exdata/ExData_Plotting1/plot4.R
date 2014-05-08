@@ -4,7 +4,7 @@ source("./readData.R")
 downloadFiles()
 hpc <- readData()
 
-### plot4
+### plot4, 4 plots
 plot4 <- function(){
     png("plot4.png")
     par(mfrow=c(2,2))

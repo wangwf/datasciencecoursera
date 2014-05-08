@@ -5,7 +5,7 @@ source("./readData.R")
 downloadFiles()
 hpc <- readData()
 
-## plot1 Globale active power histogram
+## plot1 Globale active power histogram, save it to plot1.png
 plot1 <- function(){
     #plot1
     png("plot1.png")

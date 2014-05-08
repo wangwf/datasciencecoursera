@@ -6,7 +6,7 @@ downloadFiles()
 hpc <- readData()
 
 
-### plot3
+### plot3, Energy sub metering
 plot3 <- function(){
 
     png("plot3.png")
