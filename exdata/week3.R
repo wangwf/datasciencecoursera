@@ -44,5 +44,13 @@ heatmapEx1 <- function(){
 
 # k-mean
 kmeanEx <- function(){
-    kmeans(dataFrame, centers=3)
+    dataFrame <- data.frame(x =x, y=y)
+    kmeansObj <- kmeans(dataFrame, centers=3)
+    names(kmeansObj)
+    
+    kmeansObj$cluster
+    par( mar = rep(0.2, 4))
+    plot(x, y, col= kmeansObj$cluster, pch=19, cex =2)
+    points(kmeansObj$centers, col=1:3, pch =3, cex =3, lwd=3)
+    
 }
