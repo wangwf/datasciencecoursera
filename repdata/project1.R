@@ -24,5 +24,10 @@ readData <- function(){
     summary(dsteps)
     mean(d[!is.na(d$steps),]$steps)
     median(d[!is.na(d$steps),]$steps)
+    
+    plot(d$interval, d$steps, type="l")
+    
+    summary(d$steps)
+    nrow(d[is.na(d$steps),])
 }
 
