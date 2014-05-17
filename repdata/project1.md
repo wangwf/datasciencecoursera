@@ -1,91 +1,35 @@
-Title
 
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a Fitbit, Nike Fuelband, or Jawbone Up. These type of devices are part of the “quantified self” movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
 
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+The data can be downloaded.
 
 ```r
-downloadFiles<-function(
-dataURL="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
-
-){
-if(!file.exists("./data/activity.csv")){
-dir.create("./data")
-temp <-tempfile()
-download.file(dataURL, temp, method="curl")
-unzip(temp,exdir="./data/")
-## rename dir-name ""UCI HAR Dataset" to "UCI_HAR_Dataset"
-# mv UCI\ HAR\ Dataset/ UCI_HAR_Dataset
-# file.rename("UCI HAR Dataset", "UCI_HAR_Dataset")
-unlink(temp)
-}else{
-message("data already downloaded.")
+downloadFiles <- function(dataURL = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip") {
+    if (!file.exists("./data/activity.csv")) {
+        dir.create("./data")
+        temp <- tempfile()
+        download.file(dataURL, temp, method = "curl")
+        unzip(temp, exdir = "./data/")
+        unlink(temp)
+    } else {
+        message("data already downloaded.")
+    }
 }
-}
+downloadFiles()
+```
+
+```
+## data already downloaded.
 ```
 
 
+Loading and preprocessing the data.
 
 ```r
-d <- read.csv("data/activity.csv")
-hist(d[!is.na(d$steps), ]$steps)
-```
-
-![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-21.png) 
-
-```r
-
-dsteps <- d[!is.na(d$steps), ]$steps
-summary(dsteps)
-```
-
-```
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##     0.0     0.0     0.0    37.4    12.0   806.0
-```
-
-```r
-mean(d[!is.na(d$steps), ]$steps)
-```
-
-```
-## [1] 37.38
-```
-
-```r
-median(d[!is.na(d$steps), ]$steps)
-```
-
-```
-## [1] 0
-```
-
-```r
-
-plot(d$interval, d$steps, type = "l")
-```
-
-![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-22.png) 
-
-```r
-
-summary(d$steps)
-```
-
-```
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-##     0.0     0.0     0.0    37.4    12.0   806.0    2304
-```
-
-```r
-nrow(d[is.na(d$steps), ])
-```
-
-```
-## [1] 2304
-```
-
-```r
-
-summary(d)
+data <- read.csv("data/activity.csv")
+summary(data)
 ```
 
 ```
@@ -99,3 +43,61 @@ summary(d)
 ##  NA's   :2304    (Other)   :15840
 ```
 
+```r
+head(data)
+```
+
+```
+##   steps       date interval
+## 1    NA 2012-10-01        0
+## 2    NA 2012-10-01        5
+## 3    NA 2012-10-01       10
+## 4    NA 2012-10-01       15
+## 5    NA 2012-10-01       20
+## 6    NA 2012-10-01       25
+```
+
+```r
+str(data)
+```
+
+```
+## 'data.frame':	17568 obs. of  3 variables:
+##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : Factor w/ 61 levels "2012-10-01","2012-10-02",..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
+```
+
+
+What is mean total number of steps taken perday?
+
+```r
+dataNoNA <- data[!is.na(data$steps), ]
+hist(dataNoNA$steps, xlab = "steps")
+```
+
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
+
+```r
+meanSteps <- mean(dataNoNA$steps)
+medianSteps <- median(dataNoNA$steps)
+```
+
+The mean total number of steps is 37.3826, the median is 0.
+
+What is the average daily activity pattern?
+* Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+* Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```r
+plot(dataNoNA$interval, dataNoNA$steps, type = "l")
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
+
+```r
+
+maxStepInterval <- dataNoNA[dataNoNA$steps == max(dataNoNA$steps), ]
+```
+
+The interval 615 contains the maximum number of steps?
