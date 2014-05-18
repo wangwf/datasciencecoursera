@@ -10,8 +10,8 @@ The data can be downloaded using the below R script.
 
 ```r
 downloadFiles <- function(dataURL = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip") {
-    if (!file.exists("./data/activity.csv")) {
-        dir.create("./data")
+    if (!file.exists("./activity.csv")) {
+        # dir.create('./data')
         temp <- tempfile()
         download.file(dataURL, temp, method = "curl")
         unzip(temp, exdir = "./data/")
@@ -33,9 +33,9 @@ The dataset is stored in a comma-separated-value (CSV) file and there are a tota
 
 
 ```r
-fname = "data/activity.csv"
+fname = "./activity.csv"
 if (!file.exists(fname)) downloadFiles()
-data <- read.csv("data/activity.csv")
+data <- read.csv("./activity.csv")
 data$date <- as.Date(data$date, format = "%Y-%m-%d")
 
 summary(data)
@@ -179,7 +179,16 @@ imp_stepsPerDay <- aggregate(steps ~ date, imp_data, sum)
 colnames(imp_stepsPerDay) <- c("date", "steps")
 meanSteps <- round(mean(imp_stepsPerDay$steps), 2)
 medianSteps <- round(median(imp_stepsPerDay$steps), 2)
+
+ggplot(imp_stepsPerDay, aes(x = steps)) + geom_histogram(fill = "steelblue", 
+    binwidth = 1500) + geom_point(aes(x = meanSteps, y = 0, color = "green"), 
+    size = 4, shape = 15) + geom_point(aes(x = medianSteps, y = 0, color = "yellow"), 
+    size = 4, shape = 15) + scale_color_manual(name = element_blank(), labels = col_labels, 
+    values = cols) + labs(title = "Histogram of Steps Taken per Day", x = "Number of Steps", 
+    y = "Count") + theme_bw() + theme(legend.position = "bottom")
 ```
+
+![plot of chunk imputed_steps_per_day](figure/imputed_steps_per_day.png) 
 
 Comparing with the previously calculations, the mean value remains unchanghed (since we imputed the means), the median value has shifted closer to the mean.
 
