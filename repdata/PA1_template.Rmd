@@ -7,7 +7,7 @@ This test makes use of data from a personal activity monitoring device. This dev
 Loading and preprocessing the data.
 ---------------------------------------------------
 The data can be downloaded using the below R script.
-```{r}
+```{r download_file,echo=TRUE}
 downloadFiles<-function(
     dataURL="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
     ){
@@ -31,7 +31,7 @@ The variables included in this dataset are:
 
 The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
 
-```{r}
+```{r activity_data,echo=TRUE}
 fname="data/activity.csv"
 if(!file.exists(fname)) downloadFiles()
 data <- read.csv("data/activity.csv")
@@ -46,7 +46,7 @@ What is mean total number of steps taken per day?
 ---------------------------------------------------
 - Make a histogram of the total number of steps taken each day
 - Calculate and report the mean and median total number of steps taken per day
-```{r}
+```{r steps_per_day,echo=TRUE}
 library(ggplot2)
 
 stepsPerDay <-aggregate(steps ~ date, data, sum)
@@ -72,7 +72,7 @@ What is the average daily activity pattern?
 ---------------------------------------------------
 - Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
 - Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
-```{r}
+```{r daily_activity_pattern, echo=TRUE}
 stepsPerInterval <-aggregate(steps ~ interval, data, FUN=mean, na.rm=TRUE)
 colnames(stepsPerInterval) <- c("interval","steps")
 stepsPerInterval$interval <- as.integer(stepsPerInterval$interval)
@@ -130,7 +130,7 @@ Are there differences in activity patterns between weekdays and weekends?
 
 - Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
 
-```{r}
+```{r dayOfWeek, echo=TRUE}
 data$dayOfWeek <- (weekdays(as.Date(data$date, "%Y-%m-%d")) %in% c('Saturday','Sunday'))
 for(i in 1:nrow(data)){
     if(data$dayOfWeek[i]){
