@@ -94,7 +94,7 @@ medianSteps <- round(median(stepsPerDay$steps), 2)
 col_labels <- c(paste("Mean:", meanSteps), paste("Median:", medianSteps))
 cols <- c("green", "yellow")
 
-ggplot(stepsPerDay, aes(x = steps)) + geom_histogram(fill = "steelblue", binwidth = 1500) + 
+ggplot(stepsPerDay, aes(x = steps)) + geom_histogram(fill = "blue", binwidth = 1500) + 
     geom_point(aes(x = meanSteps, y = 0, color = "green"), size = 4, shape = 15) + 
     geom_point(aes(x = medianSteps, y = 0, color = "yellow"), size = 4, shape = 15) + 
     scale_color_manual(name = element_blank(), labels = col_labels, values = cols) + 
@@ -180,12 +180,12 @@ colnames(imp_stepsPerDay) <- c("date", "steps")
 meanSteps <- round(mean(imp_stepsPerDay$steps), 2)
 medianSteps <- round(median(imp_stepsPerDay$steps), 2)
 
-ggplot(imp_stepsPerDay, aes(x = steps)) + geom_histogram(fill = "steelblue", 
-    binwidth = 1500) + geom_point(aes(x = meanSteps, y = 0, color = "green"), 
-    size = 4, shape = 15) + geom_point(aes(x = medianSteps, y = 0, color = "yellow"), 
-    size = 4, shape = 15) + scale_color_manual(name = element_blank(), labels = col_labels, 
-    values = cols) + labs(title = "Histogram of Steps Taken per Day", x = "Number of Steps", 
-    y = "Count") + theme_bw() + theme(legend.position = "bottom")
+ggplot(imp_stepsPerDay, aes(x = steps)) + geom_histogram(fill = "blue", binwidth = 1500) + 
+    geom_point(aes(x = meanSteps, y = 0, color = "green"), size = 4, shape = 15) + 
+    geom_point(aes(x = medianSteps, y = 0, color = "yellow"), size = 4, shape = 15) + 
+    scale_color_manual(name = element_blank(), labels = col_labels, values = cols) + 
+    labs(title = "Histogram of Steps Taken per Day", x = "Number of Steps", 
+        y = "Count") + theme_bw() + theme(legend.position = "bottom")
 ```
 
 ![plot of chunk imputed_steps_per_day](figure/imputed_steps_per_day.png) 
@@ -217,7 +217,7 @@ spi_dayOfWeek <- aggregate(steps ~ interval + dayOfWeek, data, FUN = mean, na.rm
 # data=spi_dayOfWeek,facets=.~dayOfWeek)+geom_line(color='steelblue',
 # size=1)
 
-ggplot(spi_dayOfWeek, aes(x = interval, y = steps)) + geom_line(color = "steelblue", 
+ggplot(spi_dayOfWeek, aes(x = interval, y = steps)) + geom_line(color = "blue", 
     size = 1) + facet_wrap(~dayOfWeek, nrow = 2, ncol = 1) + labs(x = "Interval", 
     y = "Number of steps") + theme_bw()
 ```
