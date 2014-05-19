@@ -1,6 +1,8 @@
 
-pollution <- read.csv("data/avgpm25.csv", colClasses=c("numberic", "character", "factor", "numeric", "numeric"))
+pollution <- read.csv("data/avgpm25.csv", colClasses=c("numeric", "character", "factor", "numeric", "numeric"))
 head(pollution)
+
+summary(pollution$pm25)
 
 hist(pollution$pm25, col="green")
 rug(pollution$pm25)
