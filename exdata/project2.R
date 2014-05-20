@@ -59,8 +59,32 @@ qplot(year,Emissions,  data=NEI_B_yt, geom=c("point","smooth"),col=type)
 
 
 # 4. Across the United States, how have emissions from coal combustion-related sources changed from 1999–2008?
+SCC_coal_comb <- SCC[grepl("coal", SCC$SCC.Level.Three, ignore.case=TRUE) |
+                     grepl("Lignite", SCC$SCC.Level.Three, ignore.case=TRUE),]
+NEI_coal <- NEI[NEI$SCC %in%SCC_coal_comb$SCC,]
+NEI_coal_y <- aggregate(Emissions~ year, NEI_coal,sum)
+plot(NEI_coal_y$Emissions/1e3~NEI_coal_y$year, type="b", xlab="year", ylab="PM2.5 Emissions (Kilo tons)",
+     main="Emissions of PM2.5 per year of coal cumbustors -USA")
+
+
+SCC_coal_comb <- SCC[
+        grepl("combustion", SCC$SCC.Level.One, ignore.case=TRUE) &
+      (grepl("coal", SCC$SCC.Level.Three, ignore.case=TRUE) |
+      grepl("lignite", SCC$SCC.Level.Three, ignore.case=TRUE)), ]
 
 # 5. How have emissions from motor vehicle sources changed from 1999–2008 in Baltimore City?
+NEI_Baltimore_onRoad <- NEI[(NEI$fips=="24510" & NEI$type=="ON-ROAD"),]
+NEI_Baltimore_onRoad_year <- aggregate(Emissions~ year, NEI_Baltimore_onRoad,sum)
+plot(NEI_Baltimore_onRoad_year$Emissions~NEI_Baltimore_onRoad_year$year,
+     type="b", xlab="year", ylab="PM2.5 Emissions (Kilo tons)",
+     main="Emissions of PM2.5 from motor vehicle source in Baltimore")
 
 # 6. Compare emissions from motor vehicle sources in Baltimore City with emissions from motor vehicle sources in Los Angeles County,
 # California (fips == "06037"). Which city has seen greater changes over time in motor vehicle emissions?
+NEI_onRoad <- NEI[((NEI$fips=="24510"| NEI$fips=="06037") & NEI$type=="ON-ROAD"),]
+NEI_onRoad_y <-aggregate(Emissions ~year+fips, NEI_onRoad, sum)
+NEI_onRoad_y$fips <- as.factor(NEI_onRoad_y$fips)
+
+qplot(year,Emissions,  data=NEI_onRoad_y, geom=c("point","smooth"),method="lm",col=fips)
+
+
