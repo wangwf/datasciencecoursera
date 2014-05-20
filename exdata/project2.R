@@ -21,16 +21,19 @@ SCC <- readRDS("./data/Source_Classification_Code.rds")
 #
 # 1. Have total emissions from PM2.5 decreased in the United States from 1999 to 2008?
 #
-plot(tapply(NEI$Emissions, NEI$year, sum), type="b", xlab="year", ylab="Emissions",main="PM2.5 in the Baltimore City",xaxt="n")
-axis(1,at=1:4,labels = rownames(n), col.axis="blue",las=0)
-
+png("plot1.png")
+NEI_by_year <- tapply(NEI$Emissions, NEI$year, sum)
+plot(NEI_by_year, type="b", xlab="year", ylab="PM2.5 Emissions",main="PM2.5 in the Baltimore City",xaxt="n")
+axis(1,at=1:4,labels = rownames(NEI_by_year), col.axis="blue",las=0)
+dev.off()
 #
 # 2. Have total emissions from PM2.5 decreased in the Baltimore City, Maryland (fips == "24510") from 1999 to 2008?
 #
-NEIb <- NEI[NEI$fips=="24510",]
-NEIb <- tapply(NEIb$Emissions, NEIb$year, sum)
-plot(NEIb, type="l", xlab="year", ylab="Emissions",main="PM2.5 in the Baltimore City",xaxt="n")
-axis(1,at=1:4,labels = rownames(NEIb), col.axis="blue",las=0)
+
+NEI_Baltimore <- NEI[NEI$fips=="24510",]
+NEI_Baltimore_year <- tapply(NEI_Baltimore$Emissions, NEI_Baltimore$year, sum)
+plot(NEI_Baltimore, type="l", xlab="year", ylab="Emissions",main="PM2.5 in the Baltimore City",xaxt="n")
+axis(1,at=1:4,labels = rownames(NEI_Baltimore_year), col.axis="blue",las=0)
 
 #
 # 3. Of the four types of sources indicated by the type (point, nonpoint, onroad, nonroad) variable,
@@ -38,14 +41,17 @@ axis(1,at=1:4,labels = rownames(NEIb), col.axis="blue",las=0)
 #Which have seen increases in emissions from 1999–2008? Use the ggplot2 plotting system to make a plot answer this question.
 #
 library(ggplot2)
-#NEIby <- aggregate(NEIb$Emissions, by=list(NEIb$year, NEIb$type), sum)
-NEIby <- tapply(NEIb$Emissions, list(NEIb$year, NEIb$type), sum)
-#NEIby
-plot(NEIby[,1],type="b", axt="n")
-axis(1,at=1:4,labels = rownames(NEIb), col.axis="blue",las=0)
-lines(as.numeric(c(1:4)),NEIby[,2], col="blue",lwd=2)
-lines(as.numeric(c(1:4)),NEIby[,3], col="blue",lwd=2)
-lines(as.numeric(c(1:4)),NEIby[,4], col="blue",lwd=2)
+#NEI_B_yt <- tapply(NEI_Baltimore$Emissions, list(NEI_Baltimore$year, NEI_Baltimore$type), sum)
+NEI_B_yt <- aggregate(Emissions~year+type, NEI_Baltimore, sum)
+
+qplot(year,Emissions,  data=NEI_B_yt, geom=c("point","smooth"),col=type)
+
+# increase POINT, 
+#plot(NEI_B_yt[,1],type="b", xaxt="n")
+#axis(1,at=1:4,labels = rownames(NEI_Baltimore), col.axis="blue",las=0)
+#lines(as.numeric(c(1:4)),NEI_B_yt[,2], col="blue",lwd=2)
+#lines(as.numeric(c(1:4)),NEI_B_yt[,3], col="blue",lwd=2)
+#lines(as.numeric(c(1:4)),NEI_B_yt[,4], col="blue",lwd=2)
 
 #qplot(year, Emissions, data=NEIby, color = type, geom="line")
 #plot(NEI$year, NEI$Emission)
