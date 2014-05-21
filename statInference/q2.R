@@ -38,8 +38,10 @@ pnorm(70, mean=80, sd=10.)
 # what's the probability of getting 4 or 5 heads? Express your answer as a percentage to the nearest percentage point.
  p=0.5
  5*p**4*(1-p) + p**5
+ choose(5,4)*p^4*(1-p) +choose(5,5)*p^5
+ pbinom(3, size=5, prob =0.5, lower.tail=FALSE)
 
-# q7
+ # q7
 p1 <- pnorm(c(0,14,16), 15, 10)
  (p1[3] - p1[2])/(1-p1[1])
  v<-c()
