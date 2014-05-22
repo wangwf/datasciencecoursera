@@ -1,0 +1,70 @@
+PA2 - explore the NOAA Storm Database and identify harmful events to popolation health and economic.
+=========================================
+Language: Your document should be written in English.
+
+Title: Your document should have a title that briefly summarizes your data analysis
+
+Synopis
+---------------------------------
+Synopsis: Immediately after the title, there should be a synopsis which describes and summarizes your analysis in at most 10 complete sentences.
+
+Data Processing
+--------------------------------------
+There should be a section titled Data Processing which describes (in words and code) how the data were loaded into R and processed for analysis. In particular, your analysis must start from the raw CSV file containing the data. You cannot do any preprocessing outside the document. If preprocessing is time-consuming you may consider using the cache = TRUE option for certain code chunks.
+
+Results
+----------------------------------------
+There should be a section titled Results in which your results are presented.
+
+
+The analysis document must have at least one figure containing a plot.
+
+Your analyis must have no more than three figures. Figures may have multiple plots in them (i.e. panel plots), but there cannot be more than three figures total.
+
+You must show all your code for the work in your analysis document. This may make the document a bit verbose, but that is okay. In general, you should ensure that echo = TRUE for every code chunk (this is the default setting in knitr).
+
+
+Introduction
+----------------------------------------
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+```{r download_file,echo=TRUE}
+downloadFiles<-function(
+    dataURL="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+){
+    if(!file.exists("./StormData.csv.bz2")){
+        #            dir.create("./data")
+        #temp <-tempfile()
+        temp <-"StormData.csv.bz2"
+        download.file(dataURL, temp, method="curl")
+        library(R.utils)
+        bunzip2(temp,"StormData.csv",remove=FALSE)
+        #unzip(temp,exdir="./")
+        unlink(temp)
+    }else{
+        message("data already downloaded.")
+    }
+}
+```
+
+Questions
+-----------------------------------------------------
+Two the following questions:
+
+* Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+* Across the United States, which types of events have the greatest economic consequences?
+```{r}
+fname="./StormData.csv"
+if(!file.exists(fname)) downloadFiles()
+data <- read.csv(fname)
+#data$date <- as.Date(data$date, format="%Y-%m-%d")
+
+dim(data)
+summary(data)
+head(data)
+str(data)
+```
