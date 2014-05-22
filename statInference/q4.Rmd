@@ -1,0 +1,33 @@
+In a random sample of 100 patients at a clinic, you would like to test whether the mean RDI is x or more using
+a one sided 5% type 1 error rate. The sample mean RDI had a mean of 12 and a standard deviation of 4.
+What is the largest value of x (H0:μ=x versus Ha:μ>x) would you reject for?
+Give at least one decimal place in your answer.
+```{r}
+mu =12
+s = 4
+n =100
+mu+qt(0.95, n-1)*s/sqrt(n) 
+```
+A pharmaceutical company is interested in testing a potential blood pressure lowering medication. Their first examination considers only subjects that received the medication at baseline then two weeks later. The data are as follows (SBP in mmHg)
+Subject    Baseline	Week 2
+1	140	132
+2	138	135
+3	150	151
+4	148	146
+5	135	130
+Consider testing the hypothesis that there was a mean reduction in blood pressure? Give the P-value for the associated two sided test. Give at least 3 decimal places in your answer and express your P-value as a proportion and not a percentage.
+```{r}
+x1 = c(140, 138, 150, 148, 135)
+x2 = c(132, 135, 151, 146, 130)
+t.test(x2-x1)
+```
+
+A sample of 9 men yielded a sample average brain volume of 1,100cc and a standard deviation of 30cc. What is the complete set of values of μ0 that a test of H0:μ=μ0 would fail to reject the null hypothesis in a two sided 5% Students t-test?
+
+```{r}
+mu =1100
+sd = 30
+n=9
+mu+c(-1,1)*qt(0.975, n-1)*sd/sqrt(n) 
+```
+Researchers conducted a blind taste test of Coke versus Pepsi. Each of four people was asked which of two blinded drinks given in random order that they preferred. The data was such that 3 of the 4 people chose Coke. Assuming that this sample is representative, report a P-value for a test of the hypothesis that Coke is preferred to Pepsi using a one sided exact test. Give the answer as either a proportion to two decimal places or a percentage to the nearest percentage point.
