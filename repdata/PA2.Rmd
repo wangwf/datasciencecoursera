@@ -26,10 +26,11 @@ There should be a section titled Data Processing which describes (in words and c
 
 
 ## Read data file 
-```{r download_file,echo=TRUE}
-dataURL="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+```{r readDatafile,echo=TRUE}
+
 fname="StormData.csv"
 if(!file.exists(fname)){
+    dataURL="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
     #            dir.create("./data")
     #temp <-tempfile()
     temp <-"StormData.csv.bz2"
@@ -42,21 +43,24 @@ if(!file.exists(fname)){
     message("data already downloaded.")
 }
 
+#data <- read.table(fname, header=TRUE, nrow=100, sep=",")
+#classes <- sapply(data, class)
+#data<- read.table(fname, header=TRUE, sep=",", col.names=classes)
+data <- read.csv(fname)
 
-if(!file.exists(fname)) downloadFiles()
-data <- read.table(fname, header=TRUE, nrow=1000, sep=",")
-classes <- sapply(data, class)
-data<- read.table(fname, header=TRUE, sep=",", col.names=classes)
 ```
 
 
 Summary of data
-```{r}
+```{r }
+data <- data[data$STATE %in% state.abb,]
+library(data.table)
+D <- data.table(data)
 
 #data$date <- as.Date(data$date, format="%Y-%m-%d")
 
 dim(data)
-summary(data)
+#summary(data)
 head(data)
 str(data)
 colnames(data)[grepl("DMGEXP",colnames(data))]
@@ -73,21 +77,14 @@ nEVTYPE <- length(levels(data$EVTYPE))
 There are `r nEVTYPE` types of events recorded in this database, listed as below, needed to be grouped to resolving spelling variation.
 
 ```{r}
-library(data.table)
-D <- data.table(data)
-indicator <- function(regex) {
-    indicator <- grepl(regex, D$EVTYPE, ignore.case = TRUE)
-    uniqueEventTypes <- unique(D[indicator, EVTYPE])
-    show(uniqueEventTypes[order(uniqueEventTypes)])
-    indicator
-}
-
 regexLightning <- "\\bL\\S+?G\\b"
-regexTornado <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
+regexTornado   <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
 regexThunderstorm <- "THUNDERSTORM|TSTM"
-regexWind <- "(WIND)|(WND)"
-regexHail <- "HAIL"
+regexWind   <- "(WIND)|(WND)"
+regexHail   <- "HAIL"
 regex <- paste(regexLightning, regexTornado, regexThunderstorm, regexWind, regexHail, sep="|")
+data$eventConvection <- data[grepl(regexLightning, data$EVTYPE, ignore.case = TRUE),]
+
 D <- D[, eventConvection := indicator(regex)]
 ```
 
@@ -100,11 +97,10 @@ setnames(D, names(D), tolower(names(D)))
 
 Covert \*_data fields into a data class
 ```{r convertdates, cache=TRUE}
-bgn_date <- strsplit(D$bgn_date, "[^[:digit:]]")
-bgn_date <- unlist(bgn_date)
-bgn_date <- as.numeric(bgn_date)
+bgn_date <- strsplit(as.character(D$bgn_date), "[^[:digit:]]")
+bgn_date <- as.numeric(unlist(bgn_date))
 bgn_date <- matrix(bgn_date, nrow=nrow(D), byrow=TRUE)
-dateStr <- sprintf("%4d%02d%02d", bgn_date[, 3], bgn_date[, 1], bgn_date[, 2])
+dateStr  <- sprintf("%4d%02d%02d", bgn_date[, 3], bgn_date[, 1], bgn_date[, 2])
 D <- D[, beginDate := as.Date(dateStr, format="%Y%m%d")]
 rm(bgn_date, dateStr)
 ```
@@ -149,6 +145,8 @@ message(sprintf("Number of unique values of evtype: %.0d", length(unique(D$evtyp
 ```
 
 Group event types to mimic the categories found in the [2009 Annual Summaries](http://www.ncdc.noaa.gov/oa/climate/sd/annsum2009.pdf) on page 3.
+There are 7 categories: Convection, Extreme Temperature, Flood, Marine, Tropical Cyclones, Winter and Other. In each category has many even types.
+
 
 `evtype` needs a lot of data cleaning.
 Particularly, values need to be grouped to resolve spelling variations.
@@ -166,16 +164,18 @@ indicator <- function (regex) {
 }
 ```
 
+
+
 Create an indicators for variations of **Lightning**, **Tornado**, **Thunderstorm Wind**, and **Hail**.
 List the event types that fall into the category of **Convection**.
 
 ```{r}
-regexLightning <- "\\bL\\S+?G\\b"
-regexTornado <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
-regexThunderstorm <- "THUNDERSTORM|TSTM"
-regexWind <- "(WIND)|(WND)"
-regexHail <- "HAIL"
-regex <- paste(regexLightning, regexTornado, regexThunderstorm, regexWind, regexHail, sep="|")
+Lightning <- "\\bL\\S+?G\\b"
+Tornado <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
+Thunderstorm <- "THUNDERSTORM|TSTM"
+Wind <- "(WIND)|(WND)"
+Hail <- "HAIL"
+regex <- paste(Lightning, Tornado, Thunderstorm, Wind, Hail, sep="|")
 D <- D[, eventConvection := indicator(regex)]
 ```
 
@@ -321,6 +321,7 @@ The color of each bar segment corresponds to event category.
 The outcomes combine data from `r minYear` to `r maxYear`.
 
 ```{r smallmultiples, fig.width=15}
+library(ggplot2)
 ggplot(tabulationStateCategory, aes(x=state, y=value, fill=eventCategory)) +
   geom_bar(alpha=1/2, stat="identity") +
   scale_fill_brewer(name="Category", palette="Set1") +
@@ -340,6 +341,7 @@ where <- expression(state %in% top & grepl("Fatal", outcome))
 select <- expression(list(state, value = format(value * 1E3, big.mark=","), eventCategory))
 tabulation <- tabulationStateCategory[eval(where), eval(select)]
 tabulation <- tabulation[order(value, decreasing=TRUE)]
+library(xtable)
 print(xtable(tabulation, digits=0), type="html", include.rownames=FALSE)
 ```
 
@@ -365,9 +367,3 @@ tabulation <- tabulation[order(value, decreasing=TRUE)]
 print(xtable(tabulation, digits=0), type="html", include.rownames=FALSE)
 ```
 
-Results
-----------------------------------------
-There should be a section titled Results in which your results are presented.
-
-
-The analysis document must have at least one figure containing a plot.

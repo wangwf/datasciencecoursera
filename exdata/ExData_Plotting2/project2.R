@@ -34,7 +34,7 @@ NEI_Baltimore <- NEI[NEI$fips=="24510",]
 NEI_Baltimore_year <- tapply(NEI_Baltimore$Emissions, NEI_Baltimore$year, sum)
 
 png("plot2.png")
-plot(NEI_Baltimore, type="l", xlab="year", ylab="Emissions",main="PM2.5 in the Baltimore City",xaxt="n")
+plot(NEI_Baltimore_year, type="l", xlab="year", ylab="Emissions",main="PM2.5 in the Baltimore City",xaxt="n")
 axis(1,at=1:4,labels = rownames(NEI_Baltimore_year), col.axis="blue",las=0)
 dev.off()
 
@@ -49,7 +49,7 @@ NEI_B_yt <- aggregate(Emissions~year+type, NEI_Baltimore, sum)
 
 png("plot3.png")
 qplot(year,Emissions,  data=NEI_B_yt, geom=c("point","smooth"),col=type)
-
+dev.off()
 # increase POINT, 
 #plot(NEI_B_yt[,1],type="b", xaxt="n")
 #axis(1,at=1:4,labels = rownames(NEI_Baltimore), col.axis="blue",las=0)

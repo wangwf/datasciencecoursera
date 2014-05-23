@@ -1,22 +1,19 @@
 downloadFiles<-function(
     dataURL="https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2FNEI_data.zip"
 ){
-    if(!file.exists("./data/Source_Classification_Code.rds")){
-        dir.create("./data")
+    if(!file.exists("Source_Classification_Code.rds")){
+    #    dir.create("./data")
         temp <-tempfile()
         download.file(dataURL, temp, method="curl")
         unzip(temp,exdir="./data/")
-        ## rename dir-name ""UCI HAR Dataset" to "UCI_HAR_Dataset"
-        # mv UCI\ HAR\ Dataset/ UCI_HAR_Dataset
-        # file.rename("UCI HAR Dataset", "UCI_HAR_Dataset")
         unlink(temp)
     }else{
         message("data already downloaded.")
     }
 }
 
-NEI <- readRDS("./data//summarySCC_PM25.rds")
-SCC <- readRDS("./data/Source_Classification_Code.rds")
+NEI <- readRDS("./summarySCC_PM25.rds")
+SCC <- readRDS("./Source_Classification_Code.rds")
 
 #
 # 1. Have total emissions from PM2.5 decreased in the United States from 1999 to 2008?

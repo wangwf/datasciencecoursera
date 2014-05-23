@@ -29,7 +29,8 @@ library(ggplot2)
 NEI_B_yt <- aggregate(Emissions~year+type, NEI_Baltimore, sum)
 
 png("plot3.png")
-qplot(year,Emissions,  data=NEI_B_yt, geom=c("point","smooth"),col=type)
+qplot(year,Emissions,  data=NEI_B_yt, geom=c("point","smooth"),method="lm",col=type)
+dev.off()
 
 # increase POINT, 
 #plot(NEI_B_yt[,1],type="b", xaxt="n")
@@ -40,5 +41,4 @@ qplot(year,Emissions,  data=NEI_B_yt, geom=c("point","smooth"),col=type)
 
 #qplot(year, Emissions, data=NEIby, color = type, geom="line")
 #plot(NEI$year, NEI$Emission)
-dev.off()
 
