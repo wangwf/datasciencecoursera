@@ -1,6 +1,6 @@
 PA2 - explore the NOAA Storm Database and identify harmful events to popolation health and economic.
 =========================================
-Language: Your document should be written in English.
+
 
 Title: Your document should have a title that briefly summarizes your data analysis
 
@@ -8,9 +8,362 @@ Synopis
 ---------------------------------
 Synopsis: Immediately after the title, there should be a synopsis which describes and summarizes your analysis in at most 10 complete sentences.
 
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project  explores the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+
+
+Two the following questions:
+* Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+* Across the United States, which types of events have the greatest economic consequences?
+
 Data Processing
 --------------------------------------
 There should be a section titled Data Processing which describes (in words and code) how the data were loaded into R and processed for analysis. In particular, your analysis must start from the raw CSV file containing the data. You cannot do any preprocessing outside the document. If preprocessing is time-consuming you may consider using the cache = TRUE option for certain code chunks.
+
+
+
+## Read data file 
+```{r download_file,echo=TRUE}
+dataURL="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+fname="StormData.csv"
+if(!file.exists(fname)){
+    #            dir.create("./data")
+    #temp <-tempfile()
+    temp <-"StormData.csv.bz2"
+    download.file(dataURL, temp, method="curl")
+    library(R.utils)
+    bunzip2(temp,"StormData.csv",remove=FALSE)
+    #unzip(temp,exdir="./")
+    unlink(temp)
+}else{
+    message("data already downloaded.")
+}
+
+
+if(!file.exists(fname)) downloadFiles()
+data <- read.table(fname, header=TRUE, nrow=1000, sep=",")
+classes <- sapply(data, class)
+data<- read.table(fname, header=TRUE, sep=",", col.names=classes)
+```
+
+
+Summary of data
+```{r}
+
+#data$date <- as.Date(data$date, format="%Y-%m-%d")
+
+dim(data)
+summary(data)
+head(data)
+str(data)
+colnames(data)[grepl("DMGEXP",colnames(data))]
+
+#data$propdmgcost <- data$propdmg * data$propdmgexp
+```
+
+
+Look the EVTYPE variable
+```{r}
+levels(data$EVTYPE)
+nEVTYPE <- length(levels(data$EVTYPE))
+```
+There are `r nEVTYPE` types of events recorded in this database, listed as below, needed to be grouped to resolving spelling variation.
+
+```{r}
+library(data.table)
+D <- data.table(data)
+indicator <- function(regex) {
+    indicator <- grepl(regex, D$EVTYPE, ignore.case = TRUE)
+    uniqueEventTypes <- unique(D[indicator, EVTYPE])
+    show(uniqueEventTypes[order(uniqueEventTypes)])
+    indicator
+}
+
+regexLightning <- "\\bL\\S+?G\\b"
+regexTornado <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
+regexThunderstorm <- "THUNDERSTORM|TSTM"
+regexWind <- "(WIND)|(WND)"
+regexHail <- "HAIL"
+regex <- paste(regexLightning, regexTornado, regexThunderstorm, regexWind, regexHail, sep="|")
+D <- D[, eventConvection := indicator(regex)]
+```
+
+## data cleaning
+
+Rename the column variables to the lower case
+```{r}
+setnames(D, names(D), tolower(names(D)))
+```
+
+Covert \*_data fields into a data class
+```{r convertdates, cache=TRUE}
+bgn_date <- strsplit(D$bgn_date, "[^[:digit:]]")
+bgn_date <- unlist(bgn_date)
+bgn_date <- as.numeric(bgn_date)
+bgn_date <- matrix(bgn_date, nrow=nrow(D), byrow=TRUE)
+dateStr <- sprintf("%4d%02d%02d", bgn_date[, 3], bgn_date[, 1], bgn_date[, 2])
+D <- D[, beginDate := as.Date(dateStr, format="%Y%m%d")]
+rm(bgn_date, dateStr)
+```
+
+Scale the property damage variable into a new variable, `propertyDamage`.
+
+* If `propdmgexp` = `B`, then multiply `propdmg` by 1,000,000,000
+* Else if `propdmgexp` = `M`, then multiply `propdmg` by 1,000,000
+* Else if `propdmgexp` = `K`, then multiply `propdmg` by 1,000
+* Else if `propdmgexp` = `H`, then multiply `propdmg` by 100
+* Else leave `propdmg` as-is
+
+```{r}
+D <- D[, propdmgexp := toupper(propdmgexp)]
+D[, .N, propdmgexp]
+D <- D[, propertyDamage := ifelse(propdmgexp == "B", propdmg * 1E9, ifelse(propdmgexp == "M", propdmg * 1E6, ifelse(propdmgexp == "K", propdmg * 1E3, ifelse(propdmgexp == "H", propdmg * 1E2, propdmg))))]
+summary(D$propertyDamage)
+```
+
+Scale the crop damage variable into a new variable, `cropDamage`.
+
+* If `cropdmgexp` = `B`, then multiply `cropdmg` by 1,000,000,000
+* Else if `cropdmgexp` = `M`, then multiply `cropdmg` by 1,000,000
+* Else if `cropdmgexp` = `K`, then multiply `cropdmg` by 1,000
+* Else leave `cropdmg` as-is
+
+```{r}
+D <- D[, cropdmgexp := toupper(cropdmgexp)]
+D[, .N, cropdmgexp]
+D <- D[, cropDamage := ifelse(cropdmgexp == "B", cropdmg * 1E9, ifelse(cropdmgexp == "M", cropdmg * 1E6, ifelse(cropdmgexp == "K", cropdmg * 1E3, cropdmg)))]
+summary(D$cropDamage)
+```
+
+
+#### Group event types
+
+List the number of unique values of `evtype`.
+The number of unique values is too large to manage without some grouping.
+
+```{r}
+message(sprintf("Number of unique values of evtype: %.0d", length(unique(D$evtype))))
+```
+
+Group event types to mimic the categories found in the [2009 Annual Summaries](http://www.ncdc.noaa.gov/oa/climate/sd/annsum2009.pdf) on page 3.
+
+`evtype` needs a lot of data cleaning.
+Particularly, values need to be grouped to resolve spelling variations.
+Also, records can have multiple events listed in the `evtype` variable.
+Create indicator variables for common event types.
+
+Define a helper function `freqtab` to help with grouping `evtype` values.
+
+```{r}
+indicator <- function (regex) {
+    indicator <- grepl(regex, D$evtype, ignore.case=TRUE)
+	uniqueEventTypes <- unique(D[indicator, evtype])
+	show(uniqueEventTypes[order(uniqueEventTypes)])
+	indicator
+}
+```
+
+Create an indicators for variations of **Lightning**, **Tornado**, **Thunderstorm Wind**, and **Hail**.
+List the event types that fall into the category of **Convection**.
+
+```{r}
+regexLightning <- "\\bL\\S+?G\\b"
+regexTornado <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
+regexThunderstorm <- "THUNDERSTORM|TSTM"
+regexWind <- "(WIND)|(WND)"
+regexHail <- "HAIL"
+regex <- paste(regexLightning, regexTornado, regexThunderstorm, regexWind, regexHail, sep="|")
+D <- D[, eventConvection := indicator(regex)]
+```
+
+Create an indicators for variations of **Cold** and **Heat**.
+List the event types that fall into the category of **Extreme Temperatures**.
+
+```{r}
+regex <- "COLD|HEAT"
+D <- D[, eventExtremeTemp := indicator(regex)]
+```
+
+Create an indicators for variations of **Flood** and **Rain**.
+List the event types that fall into the category of **Flood**.
+
+```{r}
+regexFlood <- "(\\bFL\\S+?D)"
+regexRain <- "RAIN|PRECIP|SHOWER"
+regex <- paste(regexFlood, regexRain, sep="|")
+D <- D[, eventFlood := indicator(regex)]
+```
+
+Create an indicator for variations of **Snow**, **Ice**, **Freeze**, or **Winter Weather**.
+List the event types that fall into the category of **Winter**.
+
+```{r}
+regex <- "(SNOW)|(ICE)|(ICY)|(FREEZ)|(WINT)"
+D <- D[, eventWinter := indicator(regex)]
+```
+
+Calculate the proportion of records that don't satisfy any one of the defined indicators.
+Calculate the number of unique event types among these records.
+List the ungrouped unique event types.
+
+```{r}
+where <- expression(eventConvection == FALSE & eventExtremeTemp == FALSE & eventFlood == FALSE & eventWinter == FALSE)
+ungrouped <- D[eval(where), list(n = .N, prop = .N / nrow(D))]
+prop <- D[eval(where), .N / nrow(D)]
+message(sprintf("Number (%%) of records that don't satisfy any one of the defined indicators: %.0d (%.2f%%)", ungrouped$n, ungrouped$prop * 100))
+uniqueEvtype <- unique(D[eval(where), evtype])
+message(sprintf("Number of unique event types that don't satisfy any one of the defined indicators: %.0d", length(uniqueEvtype)))
+uniqueEvtype[order(uniqueEvtype)]
+```
+
+Create an **Other** indicator for ungrouped event types.
+
+```{r}
+D <- D[, eventOther := eventConvection == FALSE & eventExtremeTemp == FALSE & eventFlood == FALSE & eventWinter == FALSE]
+```
+
+A crosstabulation for the event type categories is below.
+
+```{r}
+groupby <- expression(list(eventConvection, eventExtremeTemp, eventFlood, eventWinter, eventOther))
+D[, .N, eval(groupby)][order(eventConvection, eventExtremeTemp, eventFlood, eventWinter, eventOther, decreasing=TRUE)]
+```
+
+#### Categorize event types
+
+Now that event types are grouped, set up a categorization hierarchy of event
+types.
+The hierarchy is needed because records can have multiple events listed in the
+`evtype` variable.
+E.g., *THUNDERSTORM WINDS/FLASH FLOOD*.
+
+The hierarchy is as follows.
+
+1. Convection (including lightning, tornado, thunderstorm, wind, and hail)
+2. Extreme temperature (including hot and cold)
+3. Flood (including flood, flash flood, rain)
+4. Winter (including snow, ice, freeze, or winter weather)
+5. Other
+
+Under this categorization hierarchy, the example event type of *THUNDERSTORM
+WINDS/FLASH FLOOD* would be assigned to the *Convection* category.
+I.e., higher categories outrank lower categories.
+
+```{r}
+D <- D[, eventCategory := ifelse(eventConvection, 1, ifelse(eventExtremeTemp, 2, ifelse(eventFlood, 3, ifelse(eventWinter, 4, ifelse(eventOther, 5, NA)))))]
+labels <- c("Convection", "Extreme temperature", "Flood", "Winter", "Other")
+D <- D[, eventCategory := factor(eventCategory, labels=labels)]
+D[, .N, eventCategory]
+```
+
+
+### Restrict date range
+
+The date ranges for each category are below.
+
+```{r}
+select <- expression(list(numberEvents = .N, minDate = min(beginDate), maxDate = max(beginDate)))
+groupby <- expression(list(eventCategory))
+tabEventCategory <- D[, eval(select), eval(groupby)]
+tabEventCategory <- tabEventCategory[order(eventCategory)]
+message(sprintf("Convection events reach as far back as %.0d.", year(min(D$beginDate[D$eventCategory == "Convection"]))))
+message(sprintf("However, the other categories only reach as far back as %.0d.", year(min(D$beginDate[D$eventCategory != "Convection"]))))
+```
+
+Filter the data to include records with dates between a range that includes all categories.
+
+```{r}
+minYear <- year(min(D$beginDate[D$eventCategory != "Convection"]))
+maxYear <- year(max(D$beginDate))
+D <- D[minYear <= year(beginDate) & year(beginDate) <= maxYear]
+message(sprintf("For the purpose of this analysis, the date range will be limited to %.0d to %.0d.", minYear, maxYear))
+```
+
+
+### Restrict to 50 states
+
+Restrict the data to records from the 50 states.
+Use R's built-in `state.abb` dataset.
+
+```{r}
+D <- D[state %in% state.abb]
+```
+
+
+### Reshape data
+
+Reshape data table with essential variables for tabulation and plotting.
+
+```{r}
+labels <- c("Convection", "Extreme temperature", "Flood", "Winter", "Other")
+D2 <- rbind(D[, list(state, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Fatalities (thousands)", value = fatalities / 1E3)],
+            D[, list(state, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Injuries (thousands)", value = injuries / 1E3)],
+            D[, list(state, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Property damage ($, billions)", value = propertyDamage / 1E9)])
+```
+
+Tabulate by state and category, and by state.
+For the state tabulation, rank each state according to outcome.
+
+```{r}
+tabulationStateCategory <- D2[, list(value = sum(value)), list(state, eventCategory, outcome)]
+tabulationState <- D2[, list(value = sum(value)), list(state, outcome)]
+tabulationState <- tabulationState[, rank := abs(rank(value, ties.method="random") - 51), list(outcome)]
+```
+
+
+## Results
+
+Plot each outcome by state.
+The color of each bar segment corresponds to event category.
+The outcomes combine data from `r minYear` to `r maxYear`.
+
+```{r smallmultiples, fig.width=15}
+ggplot(tabulationStateCategory, aes(x=state, y=value, fill=eventCategory)) +
+  geom_bar(alpha=1/2, stat="identity") +
+  scale_fill_brewer(name="Category", palette="Set1") +
+  scale_x_discrete(name="") +
+  scale_y_continuous(name="") +
+  facet_wrap(~ outcome, scales="free", nrow=3, ncol=1) +
+  theme(legend.position="bottom")
+```
+
+Tabulate the highest ranking state for each outcome.
+
+**Fatalities**
+
+```{r, results="asis"}
+top <- tabulationState[grepl("Fatal", outcome) & rank <= 1, state]
+where <- expression(state %in% top & grepl("Fatal", outcome))
+select <- expression(list(state, value = format(value * 1E3, big.mark=","), eventCategory))
+tabulation <- tabulationStateCategory[eval(where), eval(select)]
+tabulation <- tabulation[order(value, decreasing=TRUE)]
+print(xtable(tabulation, digits=0), type="html", include.rownames=FALSE)
+```
+
+**Injuries**
+
+```{r, results="asis"}
+top <- tabulationState[grepl("Inj", outcome) & rank <= 1, state]
+where <- expression(state %in% top & grepl("Inj", outcome))
+select <- expression(list(state, value = format(value * 1E3, big.mark=","), eventCategory))
+tabulation <- tabulationStateCategory[eval(where), eval(select)]
+tabulation <- tabulation[order(value, decreasing=TRUE)]
+print(xtable(tabulation, digits=0), type="html", include.rownames=FALSE)
+```
+
+**Property damage**
+
+```{r, results="asis"}
+top <- tabulationState[grepl("Prop", outcome) & rank <= 1, state]
+where <- expression(state %in% top & grepl("Prop", outcome))
+select <- expression(list(state, value = sprintf("$%s billion", format(round(value, digits=1), big.mark=",")), eventCategory))
+tabulation <- tabulationStateCategory[eval(where), eval(select)]
+tabulation <- tabulation[order(value, decreasing=TRUE)]
+print(xtable(tabulation, digits=0), type="html", include.rownames=FALSE)
+```
 
 Results
 ----------------------------------------
@@ -18,53 +371,3 @@ There should be a section titled Results in which your results are presented.
 
 
 The analysis document must have at least one figure containing a plot.
-
-Your analyis must have no more than three figures. Figures may have multiple plots in them (i.e. panel plots), but there cannot be more than three figures total.
-
-You must show all your code for the work in your analysis document. This may make the document a bit verbose, but that is okay. In general, you should ensure that echo = TRUE for every code chunk (this is the default setting in knitr).
-
-
-Introduction
-----------------------------------------
-
-Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
-
-This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
-
-```{r download_file,echo=TRUE}
-downloadFiles<-function(
-    dataURL="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
-){
-    if(!file.exists("./StormData.csv.bz2")){
-        #            dir.create("./data")
-        #temp <-tempfile()
-        temp <-"StormData.csv.bz2"
-        download.file(dataURL, temp, method="curl")
-        library(R.utils)
-        bunzip2(temp,"StormData.csv",remove=FALSE)
-        #unzip(temp,exdir="./")
-        unlink(temp)
-    }else{
-        message("data already downloaded.")
-    }
-}
-```
-
-Questions
------------------------------------------------------
-Two the following questions:
-
-* Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
-
-* Across the United States, which types of events have the greatest economic consequences?
-```{r}
-fname="./StormData.csv"
-if(!file.exists(fname)) downloadFiles()
-data <- read.csv(fname)
-#data$date <- as.Date(data$date, format="%Y-%m-%d")
-
-dim(data)
-summary(data)
-head(data)
-str(data)
-```
