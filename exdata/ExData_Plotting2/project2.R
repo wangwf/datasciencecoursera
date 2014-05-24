@@ -15,8 +15,8 @@ downloadFiles<-function(
     }
 }
 
-NEI <- readRDS("./data//summarySCC_PM25.rds")
-SCC <- readRDS("./data/Source_Classification_Code.rds")
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("./Source_Classification_Code.rds")
 
 #
 # 1. Have total emissions from PM2.5 decreased in the United States from 1999 to 2008?
@@ -30,12 +30,15 @@ dev.off()
 # 2. Have total emissions from PM2.5 decreased in the Baltimore City, Maryland (fips == "24510") from 1999 to 2008?
 #
 
-NEI_Baltimore <- NEI[NEI$fips=="24510",]
-NEI_Baltimore_year <- tapply(NEI_Baltimore$Emissions, NEI_Baltimore$year, sum)
+#NEI_Baltimore <- NEI[NEI$fips=="24510",]
+#NEI_Baltimore_year <- tapply(NEI_Baltimore$Emissions, NEI_Baltimore$year, sum)
+#plot(NEI_Baltimore_year, type="b", xlab="year", ylab="Emissions",main="PM2.5 Emissions in the Baltimore City, Maryland",xaxt="n")
+#axis(1,at=1:4,labels = rownames(NEI_Baltimore_year), col.axis="blue",las=0)
+
+NEI_Baltimore_year <- aggregate(Emissions ~year, subset(NEI, fips=="24510"), sum)
 
 png("plot2.png")
-plot(NEI_Baltimore_year, type="l", xlab="year", ylab="Emissions",main="PM2.5 in the Baltimore City",xaxt="n")
-axis(1,at=1:4,labels = rownames(NEI_Baltimore_year), col.axis="blue",las=0)
+plot(NEI_Baltimore_year, type="b", main="PM2.5 Emissions in the Baltimore City, Maryland")
 dev.off()
 
 #
@@ -48,7 +51,7 @@ library(ggplot2)
 NEI_B_yt <- aggregate(Emissions~year+type, NEI_Baltimore, sum)
 
 png("plot3.png")
-qplot(year,Emissions,  data=NEI_B_yt, geom=c("point","smooth"),col=type)
+qplot(year,Emissions,  data=NEI_B_yt, geom=c("point","smooth"), method="loess",col=type)
 dev.off()
 # increase POINT, 
 #plot(NEI_B_yt[,1],type="b", xaxt="n")
@@ -90,11 +93,15 @@ dev.off()
 
 # 6. Compare emissions from motor vehicle sources in Baltimore City with emissions from motor vehicle sources in Los Angeles County,
 # California (fips == "06037"). Which city has seen greater changes over time in motor vehicle emissions?
-png("plot6.png")
+
 NEI_onRoad <- NEI[((NEI$fips=="24510"| NEI$fips=="06037") & NEI$type=="ON-ROAD"),]
 NEI_onRoad_y <-aggregate(Emissions ~year+fips, NEI_onRoad, sum)
 NEI_onRoad_y$fips <- as.factor(NEI_onRoad_y$fips)
+levels(NEI_onRoad_y$fips)[levels(NEI_onRoad_y$fips)=="24510"] <- "Baltimore, MD"
+levels(NEI_onRoad_y$fips)[levels(NEI_onRoad_y$fips)=="06037"] <- "Los Angeles, CA"
 
-qplot(year,Emissions,  data=NEI_onRoad_y, geom=c("point","smooth"),method="lm",col=fips)
+png("plot6.png")
+qplot(year,Emissions,  data=NEI_onRoad_y, geom=c("point","smooth"),method="lm",col=fips,
+      main="Motor vehicle emissions from Baltimore City and Los Angeles County")
 dev.off()
 

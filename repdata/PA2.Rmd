@@ -31,13 +31,10 @@ There should be a section titled Data Processing which describes (in words and c
 fname="StormData.csv"
 if(!file.exists(fname)){
     dataURL="https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
-    #            dir.create("./data")
-    #temp <-tempfile()
     temp <-"StormData.csv.bz2"
     download.file(dataURL, temp, method="curl")
     library(R.utils)
     bunzip2(temp,"StormData.csv",remove=FALSE)
-    #unzip(temp,exdir="./")
     unlink(temp)
 }else{
     message("data already downloaded.")
@@ -52,60 +49,80 @@ data <- read.csv(fname)
 
 
 Summary of data
-```{r }
-data <- data[data$STATE %in% state.abb,]
-library(data.table)
-D <- data.table(data)
-
-#data$date <- as.Date(data$date, format="%Y-%m-%d")
-
+```{r data_summary, echo=TRUE}
 dim(data)
 #summary(data)
 head(data)
 str(data)
-colnames(data)[grepl("DMGEXP",colnames(data))]
+```
 
-#data$propdmgcost <- data$propdmg * data$propdmgexp
+Here we are only interesting data on US, so using R's built-in `state.abb` dataset to restrict the records of US states.
+```{r }
+data <- data[data$STATE %in% state.abb,]
+```
+
+Covert BGN_DATE field into a date class.
+```{r convertdates, cache=TRUE}
+data$BGN_DATE <- as.Date(as.POSIXlt(data$BGN_DATE,format="%m/%d/%Y %H:%M:%S"))
+data$beginDate <- as.Date(as.POSIXct(data$BGN_DATE,format="%m/%d/%Y %H:%M:%S"))
+```
+
+```{r }
+# library(data.table)
+# D <- data.table(data)
+# #data$date <- as.Date(data$date, format="%Y-%m-%d")
+# colnames(data)[grepl("DMGEXP",colnames(data))]
+# data$propdmgcost <- data$propdmg * data$propdmgexp
 ```
 
 
-Look the EVTYPE variable
+Look the EVTYPE variable and find what kind of event recorded.
 ```{r}
 levels(data$EVTYPE)
 nEVTYPE <- length(levels(data$EVTYPE))
+message(sprintf("Number of unique values of evtype: %.0d", length(unique(data$EVTYPE))))
 ```
-There are `r nEVTYPE` types of events recorded in this database, listed as below, needed to be grouped to resolving spelling variation.
+There are `r nEVTYPE` types of events recorded in this database, listed as above. The unique number is too large to manage without grouping. Here we refer the group categories found in the [2009 Annual Summaries](http://www.ncdc.noaa.gov/oa/climate/sd/annsum2009.pdf) on page 3. There are 7 categories: Convection, Extreme Temperature, Flood, Marine, Tropical Cyclones, Winter and Other. In each category has many even types.
 
 ```{r}
-regexLightning <- "\\bL\\S+?G\\b"
-regexTornado   <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
-regexThunderstorm <- "THUNDERSTORM|TSTM"
-regexWind   <- "(WIND)|(WND)"
-regexHail   <- "HAIL"
-regex <- paste(regexLightning, regexTornado, regexThunderstorm, regexWind, regexHail, sep="|")
-data$eventConvection <- data[grepl(regexLightning, data$EVTYPE, ignore.case = TRUE),]
+Lightning    <- "\\bL\\S+?G\\b"
+Tornado      <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
+Thunderstorm <- "THUNDERSTORM|TSTM"
+Wind         <- "(WIND)|(WND)"
+Hail         <- "HAIL"
+regex <- paste(lightning, Tornado, Thunderstorm, Wind, Hail, sep="|")
 
-D <- D[, eventConvection := indicator(regex)]
+data$eventConvection <- grepl(regex, data$EVTYPE, ignore.case = TRUE)
+
+#D <- D[, eventConvection := indicator(regex)]
 ```
 
-## data cleaning
 
-Rename the column variables to the lower case
+For variations of **Cold** and **Heat**, list the event types that fall into the category of **Extreme Temperatures**.
 ```{r}
-setnames(D, names(D), tolower(names(D)))
+regex <- "COLD|HEAT"
+data$eventExtremeTemp <- grepl(regex, data$EVTYPE, ignore.case = TRUE)
 ```
 
-Covert \*_data fields into a data class
-```{r convertdates, cache=TRUE}
-bgn_date <- strsplit(as.character(D$bgn_date), "[^[:digit:]]")
-bgn_date <- as.numeric(unlist(bgn_date))
-bgn_date <- matrix(bgn_date, nrow=nrow(D), byrow=TRUE)
-dateStr  <- sprintf("%4d%02d%02d", bgn_date[, 3], bgn_date[, 1], bgn_date[, 2])
-D <- D[, beginDate := as.Date(dateStr, format="%Y%m%d")]
-rm(bgn_date, dateStr)
+For variations of **Flood** and **Rain**,list the event types that fall into the category of **Flood**.
+```{r}
+Flood <- "(\\bFL\\S+?D)"
+Rain  <- "RAIN|PRECIP|SHOWER"
+regex <- paste(Flood, Rain, sep="|")
+
+data$eventFlood <- grepl(regex, data$EVTYPE, ignore.case = TRUE)
 ```
 
-Scale the property damage variable into a new variable, `propertyDamage`.
+For variations of **Snow**, **Ice**, **Freeze**, or **Winter Weather**,
+list the event types that fall into the category of **Winter**.
+```{r}
+regex <- "(SNOW)|(ICE)|(ICY)|(FREEZ)|(WINT)"
+data$eventWinter <- grepl(regex, data$EVTYPE, ignore.case = TRUE)
+```
+
+
+
+Next, scale the property damage variable into a new variable, `propertyDamage`.
 
 * If `propdmgexp` = `B`, then multiply `propdmg` by 1,000,000,000
 * Else if `propdmgexp` = `M`, then multiply `propdmg` by 1,000,000
@@ -113,11 +130,19 @@ Scale the property damage variable into a new variable, `propertyDamage`.
 * Else if `propdmgexp` = `H`, then multiply `propdmg` by 100
 * Else leave `propdmg` as-is
 
-```{r}
-D <- D[, propdmgexp := toupper(propdmgexp)]
-D[, .N, propdmgexp]
-D <- D[, propertyDamage := ifelse(propdmgexp == "B", propdmg * 1E9, ifelse(propdmgexp == "M", propdmg * 1E6, ifelse(propdmgexp == "K", propdmg * 1E3, ifelse(propdmgexp == "H", propdmg * 1E2, propdmg))))]
-summary(D$propertyDamage)
+```{r propertyDamage}
+data$PROPDMGEXP <- toupper(data$PROPDMGEXP)
+data$propertyDamage <- ifelse(data$PROPDMGEXP == "B", data$PROPDMG*1E9,
+                              ifelse(data$PROPDMGEXP == "M", data$PROPDMG*1E6,
+                                     ifelse(data$PROPDMGEXP == "K", data$PROPDMG*1E3,
+                                         ifelse(data$PROPDMGEXP == "H", data$PROPDMG*1E2,
+                                                data$PROPDMG
+                                             ))))
+
+#D <- D[, propdmgexp := toupper(propdmgexp)]
+#D[, .N, propdmgexp]
+#D <- D[, propertyDamage := ifelse(propdmgexp == "B", propdmg * 1E9, ifelse(propdmgexp == "M", propdmg * 1E6, ifelse(propdmgexp == "K", propdmg * 1E3, ifelse(propdmgexp == "H", propdmg * 1E2, propdmg))))]
+summary(data$propertyDamage)
 ```
 
 Scale the crop damage variable into a new variable, `cropDamage`.
@@ -128,106 +153,53 @@ Scale the crop damage variable into a new variable, `cropDamage`.
 * Else leave `cropdmg` as-is
 
 ```{r}
-D <- D[, cropdmgexp := toupper(cropdmgexp)]
-D[, .N, cropdmgexp]
-D <- D[, cropDamage := ifelse(cropdmgexp == "B", cropdmg * 1E9, ifelse(cropdmgexp == "M", cropdmg * 1E6, ifelse(cropdmgexp == "K", cropdmg * 1E3, cropdmg)))]
-summary(D$cropDamage)
+data$CROPDMGEXP <- toupper(data$CROPDMGEXP)
+data$cropDamage <- ifelse(data$CROPDMGEXP == "B", data$CROPDMG*1E9,
+                              ifelse(data$CROPDMGEXP == "M", data$CROPDMG*1E6,
+                                     ifelse(data$CROPDMGEXP == "K", data$CROPDMG*1E3,
+                                         ifelse(data$CROPDMGEXP == "H", data$CROPDMG*1E2,
+                                                data$CROPDMG
+                                                ))))
+                                                
+#D <- D[, cropdmgexp := toupper(cropdmgexp)]
+#D[, .N, cropdmgexp]
+#D <- D[, cropDamage := ifelse(cropdmgexp == "B", cropdmg * 1E9, ifelse(cropdmgexp == "M", cropdmg * 1E6, ifelse(cropdmgexp == "K", cropdmg * 1E3, cropdmg)))]
+summary(data$cropDamage)
 ```
 
 
 #### Group event types
 
-List the number of unique values of `evtype`.
-The number of unique values is too large to manage without some grouping.
 
-```{r}
-message(sprintf("Number of unique values of evtype: %.0d", length(unique(D$evtype))))
-```
-
-Group event types to mimic the categories found in the [2009 Annual Summaries](http://www.ncdc.noaa.gov/oa/climate/sd/annsum2009.pdf) on page 3.
-There are 7 categories: Convection, Extreme Temperature, Flood, Marine, Tropical Cyclones, Winter and Other. In each category has many even types.
-
-
-`evtype` needs a lot of data cleaning.
-Particularly, values need to be grouped to resolve spelling variations.
-Also, records can have multiple events listed in the `evtype` variable.
-Create indicator variables for common event types.
-
-Define a helper function `freqtab` to help with grouping `evtype` values.
-
-```{r}
-indicator <- function (regex) {
-    indicator <- grepl(regex, D$evtype, ignore.case=TRUE)
-	uniqueEventTypes <- unique(D[indicator, evtype])
-	show(uniqueEventTypes[order(uniqueEventTypes)])
-	indicator
-}
-```
-
-
-
-Create an indicators for variations of **Lightning**, **Tornado**, **Thunderstorm Wind**, and **Hail**.
-List the event types that fall into the category of **Convection**.
-
-```{r}
-Lightning <- "\\bL\\S+?G\\b"
-Tornado <- "(NADO)|(\\bTOR\\S+?O\\b|(\\bFUN))"
-Thunderstorm <- "THUNDERSTORM|TSTM"
-Wind <- "(WIND)|(WND)"
-Hail <- "HAIL"
-regex <- paste(Lightning, Tornado, Thunderstorm, Wind, Hail, sep="|")
-D <- D[, eventConvection := indicator(regex)]
-```
-
-Create an indicators for variations of **Cold** and **Heat**.
-List the event types that fall into the category of **Extreme Temperatures**.
-
-```{r}
-regex <- "COLD|HEAT"
-D <- D[, eventExtremeTemp := indicator(regex)]
-```
-
-Create an indicators for variations of **Flood** and **Rain**.
-List the event types that fall into the category of **Flood**.
-
-```{r}
-regexFlood <- "(\\bFL\\S+?D)"
-regexRain <- "RAIN|PRECIP|SHOWER"
-regex <- paste(regexFlood, regexRain, sep="|")
-D <- D[, eventFlood := indicator(regex)]
-```
-
-Create an indicator for variations of **Snow**, **Ice**, **Freeze**, or **Winter Weather**.
-List the event types that fall into the category of **Winter**.
-
-```{r}
-regex <- "(SNOW)|(ICE)|(ICY)|(FREEZ)|(WINT)"
-D <- D[, eventWinter := indicator(regex)]
-```
 
 Calculate the proportion of records that don't satisfy any one of the defined indicators.
 Calculate the number of unique event types among these records.
 List the ungrouped unique event types.
-
-```{r}
-where <- expression(eventConvection == FALSE & eventExtremeTemp == FALSE & eventFlood == FALSE & eventWinter == FALSE)
-ungrouped <- D[eval(where), list(n = .N, prop = .N / nrow(D))]
-prop <- D[eval(where), .N / nrow(D)]
-message(sprintf("Number (%%) of records that don't satisfy any one of the defined indicators: %.0d (%.2f%%)", ungrouped$n, ungrouped$prop * 100))
-uniqueEvtype <- unique(D[eval(where), evtype])
-message(sprintf("Number of unique event types that don't satisfy any one of the defined indicators: %.0d", length(uniqueEvtype)))
-uniqueEvtype[order(uniqueEvtype)]
-```
-
 Create an **Other** indicator for ungrouped event types.
 
+
 ```{r}
-D <- D[, eventOther := eventConvection == FALSE & eventExtremeTemp == FALSE & eventFlood == FALSE & eventWinter == FALSE]
+where <- expression(data$eventConvection == FALSE & data$eventExtremeTemp == FALSE & data$eventFlood == FALSE & data$eventWinter == FALSE)
+message(sprintf("Number (%%) of records that don't satisfy any one of the defined indicators: %.0d (%.2f%%)", mean(eval(where))*100 ))
+
+#where <- expression(eventConvection == FALSE & eventExtremeTemp == FALSE & eventFlood == FALSE & eventWinter == FALSE)
+#ungrouped <- D[eval(where), list(n = .N, prop = .N / nrow(D))]
+#prop <- D[eval(where), .N / nrow(D)]
+#message(sprintf("Number (%%) of records that don't satisfy any one of the defined indicators: %.0d (%.2f%%)", ungrouped$n, ungrouped$prop * 100))
+#uniqueEvtype <- unique(D[eval(where), evtype])
+#message(sprintf("Number of unique event types that don't satisfy any one of the defined indicators: %.0d", length(uniqueEvtype)))
+#uniqueEvtype[order(uniqueEvtype)]
+data$eventOther <- eval(where)
 ```
+
 
 A crosstabulation for the event type categories is below.
 
 ```{r}
+groupby<- expression(list(data$eventConvection, data$eventExtremeTemp, data$eventFlood,data$eventWinter, data$eventOther))
+
+library(data.table)
+D <- data.table(data)
 groupby <- expression(list(eventConvection, eventExtremeTemp, eventFlood, eventWinter, eventOther))
 D[, .N, eval(groupby)][order(eventConvection, eventExtremeTemp, eventFlood, eventWinter, eventOther, decreasing=TRUE)]
 ```
@@ -253,10 +225,21 @@ WINDS/FLASH FLOOD* would be assigned to the *Convection* category.
 I.e., higher categories outrank lower categories.
 
 ```{r}
-D <- D[, eventCategory := ifelse(eventConvection, 1, ifelse(eventExtremeTemp, 2, ifelse(eventFlood, 3, ifelse(eventWinter, 4, ifelse(eventOther, 5, NA)))))]
-labels <- c("Convection", "Extreme temperature", "Flood", "Winter", "Other")
-D <- D[, eventCategory := factor(eventCategory, labels=labels)]
-D[, .N, eventCategory]
+data$eventCategory <- ifelse(data$eventConvection, 1,
+                             ifelse(data$eventExtremeTemp, 2,
+                                    ifelse(data$eventFlood, 3,
+                                           ifelse(data$eventWinter, 4,
+                                                  ifelse(data$eventOther, 5,
+                                                         NA
+                                                         )))))
+dt<- table(data$eventCategory)
+dimnames(dt)[[1]] = c("Convection", "Extreme temperature", "Flood", "Winter", "Other")
+barplot(dt)
+
+#D <- D[, eventCategory := ifelse(eventConvection, 1, ifelse(eventExtremeTemp, 2, ifelse(eventFlood, 3, ifelse(eventWinter, 4, ifelse(eventOther, 5, NA)))))]
+#labels <- c("Convection", "Extreme temperature", "Flood", "Winter", "Other")
+#D <- D[, eventCategory := factor(eventCategory, labels=labels)]
+#D[, .N, eventCategory]
 ```
 
 
@@ -265,6 +248,14 @@ D[, .N, eventCategory]
 The date ranges for each category are below.
 
 ```{r}
+d1<- aggregate(beginDate~eventCategory, data, min)
+d2<- aggregate(beginDate~eventCategory, data, max)
+
+plot(data$propertyDamage,data$eventCategory)
+
+select <- expression(list(numberEvents = .N, minDate = min(data$beginDate), maxDate = max(data$beginDate)))
+
+
 select <- expression(list(numberEvents = .N, minDate = min(beginDate), maxDate = max(beginDate)))
 groupby <- expression(list(eventCategory))
 tabEventCategory <- D[, eval(select), eval(groupby)]
@@ -283,25 +274,15 @@ message(sprintf("For the purpose of this analysis, the date range will be limite
 ```
 
 
-### Restrict to 50 states
-
-Restrict the data to records from the 50 states.
-Use R's built-in `state.abb` dataset.
-
-```{r}
-D <- D[state %in% state.abb]
-```
-
-
 ### Reshape data
 
 Reshape data table with essential variables for tabulation and plotting.
 
 ```{r}
 labels <- c("Convection", "Extreme temperature", "Flood", "Winter", "Other")
-D2 <- rbind(D[, list(state, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Fatalities (thousands)", value = fatalities / 1E3)],
-            D[, list(state, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Injuries (thousands)", value = injuries / 1E3)],
-            D[, list(state, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Property damage ($, billions)", value = propertyDamage / 1E9)])
+D2 <- rbind(D[, list(STATE, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Fatalities (thousands)", value = fatalities / 1E3)],
+            D[, list(STATE, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Injuries (thousands)", value = injuries / 1E3)],
+            D[, list(STATE, year = year(beginDate), eventCategory = factor(eventCategory, labels=labels), outcome = "Property damage ($, billions)", value = propertyDamage / 1E9)])
 ```
 
 Tabulate by state and category, and by state.
