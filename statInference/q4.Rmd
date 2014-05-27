@@ -6,7 +6,7 @@ Give at least one decimal place in your answer.
 mu =12
 s = 4
 n =100
-mu+qt(0.95, n-1)*s/sqrt(n) 
+mu-qnorm(0.95)*s/sqrt(n) 
 ```
 A pharmaceutical company is interested in testing a potential blood pressure lowering medication. Their first examination considers only subjects that received the medication at baseline then two weeks later. The data are as follows (SBP in mmHg)
 Subject    Baseline	Week 2
@@ -24,10 +24,86 @@ t.test(x2-x1)
 
 A sample of 9 men yielded a sample average brain volume of 1,100cc and a standard deviation of 30cc. What is the complete set of values of μ0 that a test of H0:μ=μ0 would fail to reject the null hypothesis in a two sided 5% Students t-test?
 
-```{r}
+```{r q3}
 mu =1100
 sd = 30
 n=9
 mu+c(-1,1)*qt(0.975, n-1)*sd/sqrt(n) 
 ```
 Researchers conducted a blind taste test of Coke versus Pepsi. Each of four people was asked which of two blinded drinks given in random order that they preferred. The data was such that 3 of the 4 people chose Coke. Assuming that this sample is representative, report a P-value for a test of the hypothesis that Coke is preferred to Pepsi using a one sided exact test. Give the answer as either a proportion to two decimal places or a percentage to the nearest percentage point.
+```{r q4,echo=TRUE}
+n=4
+m=3
+p =0.5
+choose(4,3)*p^4 + choose(4,4)*0.5^4
+pbinom(2,4, prob=p,lower.tail=FALSE) #starting from 3
+```
+
+Infection rates at a hospital above 1 infection per 100 person days at risk are believed to be too high and are used as a benchmark. A hospital that had previously been above the benchmark recently had 10 infections over the last 1,787 person days at risk. What is the (one sided) P-value for the relevant test of whether the hospital is *below* the standard? Express your answer as either a proportion to two decimal places or a percentage to the nearest percentage point.
+```{r q5,echo=TRUE}
+pbinom(17-1, 1787, 10./1787,lower.tail=FALSE)
+ppois(10,17.87)
+```
+
+Suppose that 18 obese subjects were randomized, 9 each, to a new diet pill and a placebo. Subjects’ body mass indices (BMIs) were measured at a baseline and again after having received the treatment or placebo for four weeks. The average difference from follow-up to the baseline (followup - baseline) was −3 kg/m2 for the treated group and 1 kg/m2 for the placebo group. The corresponding standard deviations of the differences was 1.5 kg/m2 for the treatment group and 1.8 kg/m2 for the placebo group. Does the change in BMI over the two year period appear to differ between the treated and placebo groups? Assuming normality of the underlying data and a common population variance, give a pvalue for a two sided t test.
+
+```{r q6}
+n1 = 9
+m1 = -3  # treated
+sd1 = 1.5
+n2 = 9
+m2 = 1
+sd2 = 1.8
+sp = sqrt( ((n1-1)*sd1^2 + (n2-1)*sd2^2)/(n1 + n2 -2))
+semd = sp * sqrt(1/n1 + 1/n2)
+m1-m2 + c(-1, 1)*qt(0.95, n1+n2 -2)*semd
+1-pnorm(0,-4,0.7810)
+
+t = abs(m1-m2)/semd
+pt(t, n1+n2-2, lower.tail=FALSE) *2
+```
+
+Researchers would like to conduct a study of 100 healthy adults to detect a four year mean brain volume loss of .01 mm3. Assume that the standard deviation of four year volume loss in this population is .04 mm3. What would be the power of the study for a 5% one sided test versus a null hypothesis of no volume loss? Express your answer as either a percentage to the nearest percentage point or as a proportion to two decimal places.
+```{r q8}
+Za = 1.645 # Z_(1-alpha) qnorm(0.95)
+n= 100
+m = 0.01
+s = 0.04
+Zobs = (m-0)/(s/sqrt(n))
+#P(Z> 1.645 - semd) = p(Z>-0.855)
+
+pnorm( Za-Zobs, lower.tail=FALSE)
+```
+
+```{r q9}
+power.t.test(n=138,delta=0.01,sd=0.04,type="one.sample",alt="one.sided")$power
+power.t.test(power=0.9,delta=0.01,sd=0.04,type="one.sample",alt="one.sided")
+Za = 1.645 # Z_(1-alpha) qnorm(0.95)
+#n= 100
+m = 0.01
+s = 0.04
+Zobs = Za - qnorm(0.90,lower.tail=FALSE) 
+(n = ceiling((Zobs/(m/s))^2)) # round up
+
+n<- seq(101,150,by=1)
+Zobs = (m-0)/(s/sqrt(n))
+p<-pnorm( Za-semd, lower.tail=FALSE)
+which(p>0.90)
+```
+
+The Daily Planet ran a recent story about Kryptonite poisoning in the water supply after a recent event in Metropolis. Their usual field reporter, Clark Kent, called in sick and so Lois Lane reported the story. Researchers sampled 288 individuals and found mean blood Kryptonite levels of 44, both measured in Lex Luthors per milliliter (LL/ml). They compared this to 288 sampled individuals from Gotham city who had an average level of 42.04. Report the Pvalue for a two sided Z test of the relevant hypothesis. Assume that the standard deviation is 12 for both groups.Express your answer as either a percentage to the nearest percentage point or as a proportion to two decimal places.
+```{r q11}
+n1=288
+n2 =288
+m1 = 44
+m2 = 42.04
+s1 =12
+s2 =12
+sp = sqrt( ((n1-1)*s1^2 + (n2-1)*s2^2)/(n1 + n2 -2))
+semd = sp * sqrt(1/n1 + 1/n2)
+
+t = (m1-m2)/(semd)
+pnorm(t,lower.tail=F)*2
+pt(t, n1+n2-2, lower.tail=FALSE)*2
+#m1-m2 + c(-1, 1)*qt(0.95, n1+n2 -2)*semd
+```
