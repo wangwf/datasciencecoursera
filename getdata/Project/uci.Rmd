@@ -76,7 +76,7 @@ nsampleSize = -1L
 train <- readData("UCI_HAR_Dataset/train", "train", nsampleSize)
 test  <- readData("UCI_HAR_Dataset/test","test", nsampleSize)
 train <- activityLabel(train)
-test  <- activityLabel(train)
+test  <- activityLabel(test)
 train$partition ="train"
 test$partition ="test"
 samsungData <-rbind(train, test)
@@ -85,7 +85,7 @@ summary(samsungData$subjectID)
 ```
 
 
-##plotting average acceleration for first subject
+## plotting average acceleration for first subject
 
 ```{r processData,fig.height=4,fig.width=8,tidy=TRUE}
 library(ggplot2)
@@ -99,16 +99,17 @@ qplot(data=samsungData,x=subjectID,fill=partition)
 
 
 ```{r}
-sub1 <-subset(samsungData, subject ==1)
+sub1 <-subset(samsungData, subjectID ==1)
 
 par(mfrow = c(1, 2), mar = c(5, 4, 1,1))
-plot(sub1[,1], col=sub1$activity, ylab = names(sub1)[1])
-plot(sub1[,2], col=sub1$activity, ylab = names(sub1)[2])
-legend("bottomright", legend = unique(sub1$activi), col = unique(sub1$activity),
+plot(sub1[,1+2], col=sub1$activity, ylab = names(sub1)[1])
+plot(sub1[,2+2], col=sub1$activity, ylab = names(sub1)[2])
+
+legend("bottomright", legend = unique(sub1$activity), col = unique(sub1$activity),
        pch=1)
 ```
 
-```{r}
+```{r myplclust,echo=FALSE}
 myplclust <- function(hclust, lab=hclust$labels, lab.col=rep(1, length(hclust$labels)),
                       hang = 0.1,...){
     ##
@@ -125,8 +126,8 @@ myplclust <- function(hclust, lab=hclust$labels, lab.col=rep(1, length(hclust$la
     
 }
 ```
-## Clustering based just on average acceleration
 
+### Clustering based just on average acceleration
 <!-- ## source("http://dl.dropbox.com/u/7710864/courseraPublic/myplclust.R")  -->
 
 
@@ -138,27 +139,27 @@ myplclust(hclustering, lab.col = unclass(sub1$activity))
 ```
 
 
-##plotting max acceleration for the first subject
+### plotting max acceleration for the first subject
 ```{r}
 par(mfrow = c(1, 2))
-plot(sub1[, 10], pch = 19, col = sub1$activity, ylab = names(sub1)[10])
-plot(sub1[, 11], pch = 19, col = sub1$activity, ylab = names(sub1)[11])
+plot(sub1[, 10+2], pch = 19, col = sub1$activity, ylab = names(sub1)[10+2])
+plot(sub1[, 11+2], pch = 19, col = sub1$activity, ylab = names(sub1)[11+2])
 par(mfrow=c(1,1))
 ```
 
 ---
 
-## Clustering based on maximum acceleration
+### Clustering based on maximum acceleration
 
 ```{r dependson="processData",fig.height=5,fig.width=10}
 #source("myplclust.R")
-distanceMatrix <- dist(sub1[,10:12])
+distanceMatrix <- dist(sub1[,10+2:12+2])
 hclustering <- hclust(distanceMatrix)
 myplclust(hclustering,lab.col=unclass(sub1$activity))
 ```
 
 
-#Singular Value decomposition
+### Singular Value decomposition
 ```{r}
 svd1 = svd(scale(sub1[, -c(562, 563)]))
 par(mfrow = c(1, 2))
@@ -167,7 +168,7 @@ plot(svd1$u[, 2], col = sub1$activity, pch = 19)
 ```
 
 
-## Find maximum contributor
+### Find maximum contributor
 
 ```{r dependson="svdChunk",fig.height=5,fig.width=6,cache=TRUE,tidy=TRUE}
 plot(svd1$v[,2],pch=19)
@@ -177,9 +178,8 @@ plot(sub1[,296],col=sub1$activity,ylab=names(sub1[296]))
 ```
 
 
----
 
-##  New clustering with maximum contributer
+###  New clustering with maximum contributer
 
 ```{r dependson="svdChunk",fig.height=5,fig.width=8,cache=TRUE,tidy=TRUE}
 maxContrib <- which.max(svd1$v[,2])
@@ -191,7 +191,7 @@ myplclust(hclustering,lab.col=unclass(sub1$activity))
 
 ---
 
-##  New clustering with maximum contributer
+###  New clustering with maximum contributer
 
 ```{r dependson="svdChunk",fig.height=4.5,fig.width=4.5,cache=TRUE}
 names(samsungData)[maxContrib]
@@ -205,7 +205,7 @@ qplot(sub1[,296],col=sub1$activity,xlab=names(sub1[296]),binwidth=2./30,fill=sub
 
 
 
-##kmean clustering
+### kmean clustering
 ```{r}
 kClust <- kmeans(sub1[, -c(562, 563)], centers = 6)
 table(kClust$cluster, sub1$activity)
@@ -218,17 +218,19 @@ table(kClust$cluster, sub1$activity)
 ```
 
 
+----
+
 Analysis all subjects
 ------------------------------------------------------------
 ##
 
-Check the predictor variables are normalized and scaled to the range[-1,1].
+## Check the predictor variables are normalized and scaled to the range[-1,1].
 ```{r rangeCheck,echo=TRUE}
 library(plyr)
-numPredictors = ncol(samsungData)-2
-dataSd = colwise(sd)(samsungData[,1:numPredictors])
+numPredictors = ncol(samsungData)-3
+dataSd = colwise(sd)(samsungData[,3:numPredictors])
 dataSd$stat = "Predictor Variable Standard Deviation"
-dataMean = colwise(mean)(samsungData[, 1:numPredictors])
+dataMean = colwise(mean)(samsungData[, 3:numPredictors])
 dataMean$stat = "Predictor Variable Mean"
 library(reshape2)
 temp = melt(rbind(dataMean, dataSd), c("stat"))
@@ -309,9 +311,9 @@ cvGroupIndices = lapply(temp, function(X) {
 ```
 
 
-###Model Training
+### Model Training
 
-####Set up parallel processing
+#### Set up parallel processing
 ```{r}
 library(parallel)
 cl = parallel::makeForkCluster(nnodes = detectCores()/2)
@@ -392,7 +394,7 @@ For simplicity, we will choose the best model based on overall cross-validation 
 bestModel = modelRF
 ```
 
-####Predicting generalization performance
+#### Predicting generalization performance
 
 ```{r}
 holdoutX = predict(zScaleTrain, test[, 1:numPredictors])[, -correlatedPredictors]
