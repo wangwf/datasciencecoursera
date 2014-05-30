@@ -1,0 +1,161 @@
+
+UCI HAR dataset on "Human Activity Recognition Using Smartphones"" 
+==============================
+One of the most exciting areas in all of data science right now is wearable computing  - see for example [this article](http://www.insideactivitytracking.com/data-science-activity-tracking-and-the-battle-for-the-worlds-top-sports-brand/).
+
+ Data set information was download from http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones#.  "The experiments have been carried out with a group of 30 volunteers within an age bracket of 19-48 years. Each person performed six activities (WALKING, WALKING UPSTAIRS, WALKING DOWNSTAIRS, SITTING, STANDING, LAYING) wearing a smartphone (Samsung Galaxy S II) on the waist. Using its embedded accelerometer and gyroscope, we captured 3-axial linear acceleration and 3-axial angular velocity at a constant rate of 50Hz. The experiments have been video-recorded to label the data manually. The obtained dataset has been randomly partitioned into two sets, where 70% of the volunteers was selected for generating the training data and 30% the test data.  The sensor signals (accelerometer and gyroscope) were pre-processed by applying noise filters and then sampled in fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window). The sensor acceleration signal, which has gravitational and body motion components, was separated using a Butterworth low-pass filter into body acceleration and gravity. The gravitational force is assumed to have only low frequency components, therefore a filter with 0.3 Hz cutoff frequency was used. From each window, a vector of features was obtained by calculating variables from the time and frequency domain."
+ 
+ For each record in the raw dataset it is provided:
+  
+    * Triaxial acceleration from the accelerometer (total acceleration) and the estimated body acceleration.
+    * Triaxial Angular velocity from the gyroscope.
+    * A 561-feature vector with time and frequency domain variables.
+    * Its activity label.
+    * An identifier of the subject who carried out the experiment.
+
+```{r}
+load("../courses/04_ExploratoryAnalysis/clusteringExample/data/samsungData.rda")
+names(samsungData)[1:12]
+
+table(samsungData$activity)
+```
+
+##plotting average acceleration for first subject
+
+```{r processData,fig.height=4,fig.width=8,tidy=TRUE}
+samsungData <- transform(samsungData, activity = factor(activity),subject =factor(subject))
+library(ggplot2)
+qplot(data=samsungData,x=subject,fill=activity)
+```
+
+```{r}
+library(plyr)
+numPredictors = ncol(samsungData)-2
+dataSd = colwise(sd)(samsungData[,1:numPredictors])
+dataSd$stat = "Predictor Variable Standard Deviation"
+dataMean = colwise(mean)(samsungData[, 1:numPredictors])
+dataMean$stat = "Predictor Variable Mean"
+library(reshape2)
+temp = melt(rbind(dataMean, dataSd), c("stat"))
+qplot(data = temp, x = value, binwidth = 0.025) + facet_wrap(~stat, ncol = 1)
+```
+
+
+```{r}
+sub1 <-subset(samsungData, subject ==1)
+
+par(mfrow = c(1, 2), mar = c(5, 4, 1,1))
+plot(sub1[,1], col=sub1$activity, ylab = names(sub1)[1])
+plot(sub1[,2], col=sub1$activity, ylab = names(sub1)[2])
+legend("bottomright", legend = unique(sub1$activi), col = unique(sub1$activity),
+       pch=1)
+```
+
+```{r}
+myplclust <- function(hclust, lab=hclust$labels, lab.col=rep(1, length(hclust$labels)),
+                      hang = 0.1,...){
+    ##
+    y <- rep(hclust$height, 2)
+    x <- as.numeric(hclust$merge)
+    y <- y[which(x <0 )]
+    x <- x[which(x <0 )]
+    x <- abs(x)
+    y <- y[order(x)]
+    x <- x[order(x)]
+    plot(hclust, labels = FALSE, hang =hang, ...)
+    text(x =x, y = y[hclust$order] - (max(hclust$height)* hang), labels = lab[hclust$order],
+         col = lab.col[hclust$order], srt =90, adj = c(1, 0.5), xpd = NA, ...)
+    
+}
+```
+## Clustering based just on average acceleration
+
+<!-- ## source("http://dl.dropbox.com/u/7710864/courseraPublic/myplclust.R")  -->
+
+
+```{r dependson="processData",fig.height=5,fig.width=8}
+#source("myplclust.R")
+distanceMatrix <- dist(sub1[,1:3])
+hclustering <- hclust(distanceMatrix)
+myplclust(hclustering, lab.col = unclass(sub1$activity))
+```
+
+
+#plotting max acceleration for the first subject
+```{r}
+par(mfrow = c(1, 2))
+plot(sub1[, 10], pch = 19, col = sub1$activity, ylab = names(sub1)[10])
+plot(sub1[, 11], pch = 19, col = sub1$activity, ylab = names(sub1)[11])
+par(mfrow=c(1,1))
+```
+
+---
+
+## Clustering based on maximum acceleration
+
+```{r dependson="processData",fig.height=5,fig.width=10}
+#source("myplclust.R")
+distanceMatrix <- dist(sub1[,10:12])
+hclustering <- hclust(distanceMatrix)
+myplclust(hclustering,lab.col=unclass(sub1$activity))
+```
+
+
+#Singular Value decomposition
+```{r}
+svd1 = svd(scale(sub1[, -c(562, 563)]))
+par(mfrow = c(1, 2))
+plot(svd1$u[, 1], col = sub1$activity, pch = 19)
+plot(svd1$u[, 2], col = sub1$activity, pch = 19)
+```
+
+
+## Find maximum contributor
+
+```{r dependson="svdChunk",fig.height=5,fig.width=6,cache=TRUE,tidy=TRUE}
+plot(svd1$v[,2],pch=19)
+
+plot(sub1[,296],col=sub1$activity,ylab=names(sub1[296]))
+
+```
+
+
+---
+
+##  New clustering with maximum contributer
+
+```{r dependson="svdChunk",fig.height=5,fig.width=8,cache=TRUE,tidy=TRUE}
+maxContrib <- which.max(svd1$v[,2])
+distanceMatrix <- dist(sub1[, c(10:12,maxContrib)])
+hclustering <- hclust(distanceMatrix)
+myplclust(hclustering,lab.col=unclass(sub1$activity))                             
+```
+
+
+---
+
+##  New clustering with maximum contributer
+
+```{r dependson="svdChunk",fig.height=4.5,fig.width=4.5,cache=TRUE}
+names(samsungData)[maxContrib]
+(topN<-order(svd1$v[,2],decreasing=T)[1:5])
+n<-names(samsungData)[topN]
+r<-svd1$v[,2][topN]
+rbind(n,r)
+
+qplot(sub1[,296],col=sub1$activity,xlab=names(sub1[296]),binwidth=2./30,fill=sub1$activity)
+```
+
+
+
+#kmean clustering
+```{r}
+kClust <- kmeans(sub1[, -c(562, 563)], centers = 6)
+table(kClust$cluster, sub1$activity)
+
+kClust <- kmeans(sub1[, -c(562, 563)], centers = 6, nstart = 1)
+table(kClust$cluster, sub1$activity)
+
+kClust <- kmeans(sub1[, -c(562, 563)], centers = 6, nstart = 100)
+table(kClust$cluster, sub1$activity)
+```
