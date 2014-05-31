@@ -42,7 +42,6 @@ readData <- function(pathPrefix = "UCI_HAR_Dataset/train", fileSuffix = "train",
     features <- read.table(paste0(pathPrefix,"/../features.txt"),
                            col.names=c("featureID","featureName"))
     
-    
     #read X data
     data <- read.table(paste0(pathPrefix,"/X_",fileSuffix,".txt"),col.names=features$featureName)
     
@@ -54,7 +53,8 @@ readData <- function(pathPrefix = "UCI_HAR_Dataset/train", fileSuffix = "train",
     if( nrow(subject) != nrow(data)){message("Error: Mismatch between subject_*.txt and X_*.txt")}
     if( nrow(subject) != nrow(Y)){message("Error: Mismatch between subject_*.txt and y_*.txt")}
     
-    data <- cbind(subject, Y, data)
+#    data <- cbind(subject, Y, data)
+    data <- cbind( data, subject, Y)
     data
 }
 activityLabel <- function(data, labelFile="UCI_HAR_Dataset//activity_labels.txt"){
@@ -164,7 +164,8 @@ myplclust(hclustering,lab.col=unclass(sub1$activity))
 
 ### Singular Value decomposition
 ```{r}
-svd1 = svd(scale(sub1[, -c(562, 563)]))
+#svd1 = svd(scale(sub1[, -c(562, 563)]))
+svd1 = svd(scale(sub1[, -c(1, 563:566)]))
 par(mfrow = c(1, 2))
 plot(svd1$u[, 1], col = sub1$activity, pch = 19)
 plot(svd1$u[, 2], col = sub1$activity, pch = 19)
