@@ -77,6 +77,9 @@ train <- readData("UCI_HAR_Dataset/train", "train", nsampleSize)
 test  <- readData("UCI_HAR_Dataset/test","test", nsampleSize)
 train <- activityLabel(train)
 test  <- activityLabel(test)
+train <- transform(train, subjectID=factor(subjectID), activity=factor(activityID))
+test <- transform(test, subjectID=factor(subjectID), activity=factor(activityID))
+
 train$partition ="train"
 test$partition ="test"
 samsungData <-rbind(train, test)
@@ -267,13 +270,13 @@ head(nzv[order(nzv$freqRatio, decreasing = TRUE), ], n = 20)
 ```{r}
 correlatedPredictors = findCorrelation(cor(scaledX), cutoff = 0.95)
 ```
-There are `r correlatedPredictors` correlated predictors to remove
+There are `r length(correlatedPredictors)` correlated predictors to remove
 
 ```{r}
 reducedCorrelationX = scaledX[, -correlatedPredictors]
 head(names(reducedCorrelationX))
 ```
-The reduced correlation predictor set retains `r reducedCorrelationX` variables.
+The reduced correlation predictor set retains `r dim(reducedCorrelationX)` variables.
 
 
 ### PCA Transformed Predictors
@@ -303,7 +306,7 @@ If instead we want to control computation time, we can create a different partit
 
 ```{r}
 cvBreaks = 7
-temp = sample(levels(train$subject), length(levels(train$subject)))  # randomize subjects
+temp = sample(levels(train$subjectID), length(levels(train$subjectID)))  # randomize subjects
 temp = split(temp, cut(1:length(temp), breaks = cvBreaks, labels = FALSE))  # split into CV groups
 cvGroupIndices = lapply(temp, function(X) {
     which(!train$subject %in% X)
@@ -329,10 +332,8 @@ getDoParWorkers()
 ```{r}
 saveFile = paste(DataDirectory, "modelRF.RData", sep = "")
 if (!file.exists(saveFile)) {
-    rfCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices, 
-        classProbs = TRUE)
-    modelRF = train(reducedCorrelationX, train$Activity, method = "rf", trControl = rfCtrl, 
-        tuneGrid = data.frame(.mtry = c(2, 5, 10, 15, 20)), importance = TRUE)
+    rfCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices, classProbs = TRUE)
+    modelRF = train(reducedCorrelationX, train$activity, method = "rf", trControl = rfCtrl, tuneGrid = data.frame(.mtry = c(2, 5, 10, 15, 20)), importance = TRUE)
     save(rfCtrl, modelRF, correlatedPredictors, zScaleTrain, file = saveFile)
 }
 if (!exists("modelRF")) {
