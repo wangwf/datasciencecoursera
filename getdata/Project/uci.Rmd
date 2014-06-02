@@ -1,5 +1,5 @@
 
-UCI HAR dataset on "Human Activity Recognition Using Smartphones"" 
+UCI HAR dataset on "Human Activity Recognition Using Smartphones"
 =================================================================
 One of the most exciting areas in all of data science right now is wearable computing  - see for example [this article](http://www.insideactivitytracking.com/data-science-activity-tracking-and-the-battle-for-the-worlds-top-sports-brand/).
 
@@ -16,7 +16,7 @@ One of the most exciting areas in all of data science right now is wearable comp
 ## download and unzip files
 ```{r download, echo=FALSE}
 ProjectDirectory = getwd()
-DataDirectory = "UCI HAR Dataset/"
+DataDirectory = "UCI_HAR_Dataset/"
 downloadFiles<-function(
     dataURL="https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
 ){
@@ -60,13 +60,16 @@ readData <- function(pathPrefix = "UCI_HAR_Dataset/train", fileSuffix = "train",
 activityLabel <- function(data, labelFile="UCI_HAR_Dataset//activity_labels.txt"){
     activityLabels <- read.table(labelFile,col.names=c("activityID","activityName"))
     activityLabels$activityName <- as.factor(activityLabels$activityName)
-    dataLabled<-merge(data,activityLabels)
-    dataLabled
+#    data$activity <- data$activityID
+    data$activityID <- as.factor(data$activityID)
+    levels(data$activityID) <- activityLabels$activityName
+#    dataLabled<-merge(data,activityLabels)
+    data
 }
 loadData <- function(){
     load("../courses/04_ExploratoryAnalysis/clusteringExample/data/samsungData.rda")
     names(samsungData)[1:12]
-    table(samsungData$activity)
+    table(samsungData$activityID)
 }
 
 ```
@@ -77,13 +80,12 @@ train <- readData("UCI_HAR_Dataset/train", "train", nsampleSize)
 test  <- readData("UCI_HAR_Dataset/test","test", nsampleSize)
 train <- activityLabel(train)
 test  <- activityLabel(test)
-train <- transform(train, subjectID=factor(subjectID), activity=factor(activityID))
-test <- transform(test, subjectID=factor(subjectID), activity=factor(activityID))
+train <- transform(train, subjectID=factor(subjectID), activityID=factor(activityID))
+test <- transform(test, subjectID=factor(subjectID), activityID=factor(activityID))
 
 train$partition ="train"
 test$partition ="test"
 samsungData <-rbind(train, test)
-samsungData <- transform(samsungData, subjectID=factor(subjectID), activity=factor(activityID))
 summary(samsungData$subjectID)
 ```
 
@@ -93,7 +95,7 @@ summary(samsungData$subjectID)
 ```{r processData,fig.height=4,fig.width=8,tidy=TRUE}
 library(ggplot2)
 
-qplot(data=samsungData,x=subjectID,fill=activity)
+qplot(data=samsungData,x=subjectID,fill=activityID)
 qplot(data=samsungData,x=subjectID,fill=partition)
 #grid.arrange(q1,q2,ncol=1)
 #samsungData$part <- as.factor(samsungData$partition)
@@ -105,11 +107,12 @@ qplot(data=samsungData,x=subjectID,fill=partition)
 sub1 <-subset(samsungData, subjectID ==1)
 
 par(mfrow = c(1, 2), mar = c(5, 4, 1,1))
-plot(sub1[,1+2], col=sub1$activity, ylab = names(sub1)[1])
-plot(sub1[,2+2], col=sub1$activity, ylab = names(sub1)[2])
+plot(sub1[,1], col=sub1$activityID, ylab = names(sub1)[1])
+plot(sub1[,2], col=sub1$activityID, ylab = names(sub1)[2])
 
 legend("bottomright", legend = unique(sub1$activity), col = unique(sub1$activity),
        pch=1)
+par(mfrow=c(1,1))
 ```
 
 ```{r myplclust,echo=FALSE}
@@ -138,15 +141,15 @@ myplclust <- function(hclust, lab=hclust$labels, lab.col=rep(1, length(hclust$la
 #source("myplclust.R")
 distanceMatrix <- dist(sub1[,1:3])
 hclustering <- hclust(distanceMatrix)
-myplclust(hclustering, lab.col = unclass(sub1$activity))
+myplclust(hclustering, lab.col = unclass(sub1$activityID))
 ```
 
 
 ### plotting max acceleration for the first subject
 ```{r}
 par(mfrow = c(1, 2))
-plot(sub1[, 10+2], pch = 19, col = sub1$activity, ylab = names(sub1)[10+2])
-plot(sub1[, 11+2], pch = 19, col = sub1$activity, ylab = names(sub1)[11+2])
+plot(sub1[, 10], pch = 19, col = sub1$activityID, ylab = names(sub1)[10])
+plot(sub1[, 11], pch = 19, col = sub1$activityID, ylab = names(sub1)[11])
 par(mfrow=c(1,1))
 ```
 
@@ -156,19 +159,20 @@ par(mfrow=c(1,1))
 
 ```{r dependson="processData",fig.height=5,fig.width=10}
 #source("myplclust.R")
-distanceMatrix <- dist(sub1[,10+2:12+2])
+distanceMatrix <- dist(sub1[,10:12])
 hclustering <- hclust(distanceMatrix)
-myplclust(hclustering,lab.col=unclass(sub1$activity))
+myplclust(hclustering,lab.col=unclass(sub1$activityID))
 ```
 
 
 ### Singular Value decomposition
-```{r}
+```{r svdChunk,echo=TRUE}
 #svd1 = svd(scale(sub1[, -c(562, 563)]))
-svd1 = svd(scale(sub1[, -c(1, 563:566)]))
+svd1 = svd(scale(sub1[, -c( 562:564)]))
 par(mfrow = c(1, 2))
-plot(svd1$u[, 1], col = sub1$activity, pch = 19)
-plot(svd1$u[, 2], col = sub1$activity, pch = 19)
+plot(svd1$u[, 1], col = sub1$activityID, pch = 19)
+plot(svd1$u[, 2], col = sub1$activityID, pch = 19)
+par(mfrow = c(1,1))
 ```
 
 
@@ -177,7 +181,7 @@ plot(svd1$u[, 2], col = sub1$activity, pch = 19)
 ```{r dependson="svdChunk",fig.height=5,fig.width=6,cache=TRUE,tidy=TRUE}
 plot(svd1$v[,2],pch=19)
 
-plot(sub1[,296],col=sub1$activity,ylab=names(sub1[296]))
+plot(sub1[,296],col=sub1$activityID,ylab=names(sub1[296]))
 
 ```
 
@@ -189,13 +193,13 @@ plot(sub1[,296],col=sub1$activity,ylab=names(sub1[296]))
 maxContrib <- which.max(svd1$v[,2])
 distanceMatrix <- dist(sub1[, c(10:12,maxContrib)])
 hclustering <- hclust(distanceMatrix)
-myplclust(hclustering,lab.col=unclass(sub1$activity))                             
+myplclust(hclustering,lab.col=unclass(sub1$activityID))                             
 ```
 
 
 ---
 
-###  New clustering with maximum contributer
+###  Maximum contributer: top 5 contributer
 
 ```{r dependson="svdChunk",fig.height=4.5,fig.width=4.5,cache=TRUE}
 names(samsungData)[maxContrib]
@@ -204,21 +208,24 @@ n<-names(samsungData)[topN]
 r<-svd1$v[,2][topN]
 rbind(n,r)
 
-qplot(sub1[,296],col=sub1$activity,xlab=names(sub1[296]),binwidth=2./30,fill=sub1$activity)
+qplot(sub1[,296],col=sub1$activityID,xlab=names(sub1[296]),binwidth=2./30,fill=sub1$activityID)
 ```
 
 
 
 ### kmean clustering
 ```{r}
-kClust <- kmeans(sub1[, -c(562, 563)], centers = 6)
-table(kClust$cluster, sub1$activity)
+#kClust <- kmeans(sub1[, -c(562, 563)], centers = 6)
+kClust <- kmeans(sub1[, -c(562:564)], centers = 6)
+table(kClust$cluster, sub1$activityID)
 
-kClust <- kmeans(sub1[, -c(562, 563)], centers = 6, nstart = 1)
-table(kClust$cluster, sub1$activity)
+#kClust <- kmeans(sub1[, -c(562, 563)], centers = 6, nstart = 1)
+kClust <- kmeans(sub1[, -c(562:564)], centers = 6, nstart=1)
+table(kClust$cluster, sub1$activityID)
 
-kClust <- kmeans(sub1[, -c(562, 563)], centers = 6, nstart = 100)
-table(kClust$cluster, sub1$activity)
+#kClust <- kmeans(sub1[, -c(562, 563)], centers = 6, nstart = 100)
+kClust <- kmeans(sub1[, -c(562:564)], centers = 6, nstart=100)
+table(kClust$cluster, sub1$activityID)
 ```
 
 
@@ -232,9 +239,9 @@ Analysis all subjects
 ```{r rangeCheck,echo=TRUE}
 library(plyr)
 numPredictors = ncol(samsungData)-3
-dataSd = colwise(sd)(samsungData[,3:numPredictors])
+dataSd = colwise(sd)(samsungData[,1:numPredictors])
 dataSd$stat = "Predictor Variable Standard Deviation"
-dataMean = colwise(mean)(samsungData[, 3:numPredictors])
+dataMean = colwise(mean)(samsungData[, 1:numPredictors])
 dataMean$stat = "Predictor Variable Mean"
 library(reshape2)
 temp = melt(rbind(dataMean, dataSd), c("stat"))
@@ -249,16 +256,16 @@ Looking one subject
 
 *caret* package offers several options for preprocessing continuous variables such as the predictors in the UCI HAR dataset. We will prepare several different versions of the predictor matrix to compare how these perform when we build a predictive model.
 ### Z-scaling
-```{r}
+```{r zScaling}
+library(lattice)
 library(caret)
 zScaleTrain = preProcess(train[, 1:numPredictors])
 scaledX = predict(zScaleTrain, train[, 1:numPredictors])
 head(names(scaledX))
-
 ```
 
 ### Near Zero Variance Predictor Detection
-```{r}
+```{r nearZero,echo=TRUE}
 nzv = nearZeroVar(scaledX, saveMetrics = TRUE)
 summary(nzv)
 head(nzv[order(nzv$percentUnique, decreasing = FALSE), ], n = 20)
@@ -269,7 +276,8 @@ head(nzv[order(nzv$freqRatio, decreasing = TRUE), ], n = 20)
 
 ### Find and Remove Highly Correlated Predictors
 ```{r}
-correlatedPredictors = findCorrelation(cor(scaledX), cutoff = 0.95)
+#correlatedPredictors = findCorrelation(cor(scaledX), cutoff = 0.95)
+correlatedPredictors = findCorrelation(cor(scaledX), cutoff = 0.8)
 ```
 There are `r length(correlatedPredictors)` correlated predictors to remove
 
@@ -277,14 +285,14 @@ There are `r length(correlatedPredictors)` correlated predictors to remove
 reducedCorrelationX = scaledX[, -correlatedPredictors]
 head(names(reducedCorrelationX))
 ```
-The reduced correlation predictor set retains `r dim(reducedCorrelationX)` variables.
+The reduced correlation predictor set retains `r dim(reducedCorrelationX)[2]` variables.
 
 
 ### PCA Transformed Predictors
 ```{r}
 pcaTrain = preProcess(scaledX, method = "pca", thresh = 0.99)
 ```
-The PCA transformed data retains `r pcaTrain` components to capture 99% of the variance.
+The PCA transformed data retains `r pcaTrain$numCop` components to capture 99% of the variance.
 
 ```{r}
 pcaX = predict(pcaTrain, scaledX)
@@ -334,7 +342,7 @@ getDoParWorkers()
 saveFile = paste(DataDirectory, "modelRF.RData", sep = "")
 if (!file.exists(saveFile)) {
     rfCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices, classProbs = TRUE)
-    modelRF = train(reducedCorrelationX, train$activity, method = "rf", trControl = rfCtrl, tuneGrid = data.frame(.mtry = c(2, 5, 10, 15, 20)), importance = TRUE)
+    modelRF = train(reducedCorrelationX, train$activityID, method = "rf", trControl = rfCtrl, tuneGrid = data.frame(.mtry = c(2, 5, 10, 15, 20)), importance = TRUE)
     save(rfCtrl, modelRF, correlatedPredictors, zScaleTrain, file = saveFile)
 }
 if (!exists("modelRF")) {
@@ -355,10 +363,8 @@ head(m, n = 20)
 ```{r}
 saveFile = paste(DataDirectory, "modelParRF.RData", sep = "")
 if (!file.exists(saveFile)) {
-    parRfCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices, 
-        classProbs = TRUE)
-    modelParRF = train(reducedCorrelationX, train$Activity, method = "parRF", trControl = parRfCtrl, 
-        tuneGrid = data.frame(.mtry = c(2, 5, 10, 15, 20)), importance = TRUE)
+    parRfCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices, classProbs = TRUE)
+    modelParRF = train(reducedCorrelationX, train$activityID, method = "parRF", trControl = parRfCtrl, tuneGrid = data.frame(.mtry = c(2, 5, 10, 15, 20)), importance = TRUE)
     save(parRfCtrl, modelParRF, correlatedPredictors, zScaleTrain, file = saveFile)
 }
 if (!exists("modelParRF")) {
@@ -375,10 +381,8 @@ print(confusionMatrix(modelParRF))
 ```{r}
 saveFile = paste(DataDirectory, "modelKnn.RData", sep = "")
 if (!file.exists(saveFile)) {
-    knnCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices, 
-        classProbs = TRUE)
-    modelKnn = train(reducedCorrelationX, train$Activity, method = "knn", trControl = knnCtrl, 
-        tuneGrid = data.frame(.k = c(5, 10, 15, 20)))
+    knnCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices,   classProbs = TRUE)
+    modelKnn = train(reducedCorrelationX, train$activityID, method = "knn", trControl = knnCtrl, tuneGrid = data.frame(.k = c(5, 10, 15, 20)))
     save(knnCtrl, modelKnn, correlatedPredictors, zScaleTrain, file = saveFile)
 }
 if (!exists("modelKnn")) {
@@ -400,7 +404,7 @@ bestModel = modelRF
 
 ```{r}
 holdoutX = predict(zScaleTrain, test[, 1:numPredictors])[, -correlatedPredictors]
-holdoutLabels = test$Activity
+holdoutLabels = test$activityID
 holdoutPrediction = predict(bestModel, holdoutX)
 head(holdoutPrediction)
 classProbPrediction = predict(bestModel, holdoutX, type = "prob")
