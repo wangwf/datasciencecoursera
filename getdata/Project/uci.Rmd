@@ -163,7 +163,7 @@ myplclust(hclustering,lab.col=unclass(sub1$activity))
 
 
 ### Singular Value decomposition
-```{r}
+```{r svdChunk}
 #svd1 = svd(scale(sub1[, -c(562, 563)]))
 svd1 = svd(scale(sub1[, -c(1, 563:566)]))
 par(mfrow = c(1, 2))
