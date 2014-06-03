@@ -1,0 +1,427 @@
+
+UCI HAR dataset on "Human Activity Recognition Using Smartphones"
+=================================================================
+One of the most exciting areas in all of data science right now is wearable computing  - see for example [this article](http://www.insideactivitytracking.com/data-science-activity-tracking-and-the-battle-for-the-worlds-top-sports-brand/).
+
+ Data set information was download from http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones#.  "The experiments have been carried out with a group of 30 volunteers within an age bracket of 19-48 years. Each person performed six activities (WALKING, WALKING UPSTAIRS, WALKING DOWNSTAIRS, SITTING, STANDING, LAYING) wearing a smartphone (Samsung Galaxy S II) on the waist. Using its embedded accelerometer and gyroscope, we captured 3-axial linear acceleration and 3-axial angular velocity at a constant rate of 50Hz. The experiments have been video-recorded to label the data manually. The obtained dataset has been randomly partitioned into two sets, where 70% of the volunteers was selected for generating the training data and 30% the test data.  The sensor signals (accelerometer and gyroscope) were pre-processed by applying noise filters and then sampled in fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window). The sensor acceleration signal, which has gravitational and body motion components, was separated using a Butterworth low-pass filter into body acceleration and gravity. The gravitational force is assumed to have only low frequency components, therefore a filter with 0.3 Hz cutoff frequency was used. From each window, a vector of features was obtained by calculating variables from the time and frequency domain."
+ 
+ For each record in the raw dataset it is provided:
+  
+    * Triaxial acceleration from the accelerometer (total acceleration) and the estimated body acceleration.
+    * Triaxial Angular velocity from the gyroscope.
+    * A 561-feature vector with time and frequency domain variables.
+    * Its activity label.
+    * An identifier of the subject who carried out the experiment.
+
+## download and unzip files
+```{r download, echo=FALSE}
+ProjectDirectory = getwd()
+DataDirectory = "UCI_HAR_Dataset/"
+downloadFiles<-function(
+    dataURL="https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+){
+    if(!file.exists("./UCI_HAR_Dataset/")){
+        dir.create("./UCI_HAR_Dataset")
+        temp <-tempfile()
+        download.file(dataURL, temp, method="curl")
+        unzip(temp,exdir=".")
+        ## rename dir-name ""UCI HAR Dataset" to "UCI_HAR_Dataset"
+        # mv UCI\ HAR\ Dataset/ UCI_HAR_Dataset
+        file.rename("UCI HAR Dataset", "UCI_HAR_Dataset")
+        unlink(temp)
+    }else{
+        message("UCI_HAR_Dataset already downloaded.")
+    }
+}
+readData <- function(pathPrefix = "UCI_HAR_Dataset/train", fileSuffix = "train", nsampleSize = -1L){
+    #read subject
+    subject <- read.table(paste0(pathPrefix,"/subject_",fileSuffix,".txt"),nrows=nsampleSize,
+                          col.names=c("subjectID"))
+    
+    # read the measurement variables -- features
+    features <- read.table(paste0(pathPrefix,"/../features.txt"),
+                           col.names=c("featureID","featureName"))
+    
+    #read X data
+    data <- read.table(paste0(pathPrefix,"/X_",fileSuffix,".txt"),col.names=features$featureName)
+    
+    #read y data -- activities
+    Y <- read.table(paste0(pathPrefix,"/y_",fileSuffix,".txt"), nrows=nsampleSize,
+                    col.names=c("activityID"))
+    
+    # append the length of activity and subject
+    if( nrow(subject) != nrow(data)){message("Error: Mismatch between subject_*.txt and X_*.txt")}
+    if( nrow(subject) != nrow(Y)){message("Error: Mismatch between subject_*.txt and y_*.txt")}
+    
+#    data <- cbind(subject, Y, data)
+    data <- cbind( data, subject, Y)
+    data
+}
+activityLabel <- function(data, labelFile="UCI_HAR_Dataset//activity_labels.txt"){
+    activityLabels <- read.table(labelFile,col.names=c("activityID","activityName"))
+    activityLabels$activityName <- as.factor(activityLabels$activityName)
+#    data$activity <- data$activityID
+    data$activityID <- as.factor(data$activityID)
+    levels(data$activityID) <- activityLabels$activityName
+#    dataLabled<-merge(data,activityLabels)
+    data
+}
+loadData <- function(){
+    load("../courses/04_ExploratoryAnalysis/clusteringExample/data/samsungData.rda")
+    names(samsungData)[1:12]
+    table(samsungData$activityID)
+}
+
+```
+
+```{r}
+nsampleSize = -1L
+train <- readData("UCI_HAR_Dataset/train", "train", nsampleSize)
+test  <- readData("UCI_HAR_Dataset/test","test", nsampleSize)
+train <- activityLabel(train)
+test  <- activityLabel(test)
+train <- transform(train, subjectID=factor(subjectID), activityID=factor(activityID))
+test <- transform(test, subjectID=factor(subjectID), activityID=factor(activityID))
+
+train$partition ="train"
+test$partition ="test"
+samsungData <-rbind(train, test)
+summary(samsungData$subjectID)
+```
+
+
+## plotting average acceleration for first subject
+
+```{r processData,fig.height=4,fig.width=8,tidy=TRUE}
+library(ggplot2)
+
+qplot(data=samsungData,x=subjectID,fill=activityID)
+qplot(data=samsungData,x=subjectID,fill=partition)
+#grid.arrange(q1,q2,ncol=1)
+#samsungData$part <- as.factor(samsungData$partition)
+#qplot(data=samsungData, x=subjectID, fill=activityID,binwidth=0.5)
+```
+
+
+```{r}
+sub1 <-subset(samsungData, subjectID ==1)
+
+par(mfrow = c(1, 2), mar = c(5, 4, 1,1))
+plot(sub1[,1], col=sub1$activityID, ylab = names(sub1)[1])
+plot(sub1[,2], col=sub1$activityID, ylab = names(sub1)[2])
+
+legend("bottomright", legend = unique(sub1$activity), col = unique(sub1$activity),
+       pch=1)
+par(mfrow=c(1,1))
+```
+
+```{r myplclust,echo=FALSE}
+myplclust <- function(hclust, lab=hclust$labels, lab.col=rep(1, length(hclust$labels)),
+                      hang = 0.1,...){
+    ##
+    y <- rep(hclust$height, 2)
+    x <- as.numeric(hclust$merge)
+    y <- y[which(x <0 )]
+    x <- x[which(x <0 )]
+    x <- abs(x)
+    y <- y[order(x)]
+    x <- x[order(x)]
+    plot(hclust, labels = FALSE, hang =hang, ...)
+    text(x =x, y = y[hclust$order] - (max(hclust$height)* hang), labels = lab[hclust$order],
+         col = lab.col[hclust$order], srt =90, adj = c(1, 0.5), xpd = NA, ...)
+    
+}
+```
+
+### Clustering based just on average acceleration
+<!-- ## source("http://dl.dropbox.com/u/7710864/courseraPublic/myplclust.R")  -->
+
+
+```{r dependson="processData",fig.height=5,fig.width=8}
+#source("myplclust.R")
+distanceMatrix <- dist(sub1[,1:3])
+hclustering <- hclust(distanceMatrix)
+myplclust(hclustering, lab.col = unclass(sub1$activityID))
+```
+
+
+### plotting max acceleration for the first subject
+```{r}
+par(mfrow = c(1, 2))
+plot(sub1[, 10], pch = 19, col = sub1$activityID, ylab = names(sub1)[10])
+plot(sub1[, 11], pch = 19, col = sub1$activityID, ylab = names(sub1)[11])
+par(mfrow=c(1,1))
+```
+
+---
+
+### Clustering based on maximum acceleration
+
+```{r dependson="processData",fig.height=5,fig.width=10}
+#source("myplclust.R")
+distanceMatrix <- dist(sub1[,10:12])
+hclustering <- hclust(distanceMatrix)
+myplclust(hclustering,lab.col=unclass(sub1$activityID))
+```
+
+
+### Singular Value decomposition
+<<<<<<< HEAD
+```{r svdChunk}
+=======
+```{r svdChunk,echo=TRUE}
+>>>>>>> cd7d74756b520b8128732ba4d630bea6a293a274
+#svd1 = svd(scale(sub1[, -c(562, 563)]))
+svd1 = svd(scale(sub1[, -c( 562:564)]))
+par(mfrow = c(1, 2))
+plot(svd1$u[, 1], col = sub1$activityID, pch = 19)
+plot(svd1$u[, 2], col = sub1$activityID, pch = 19)
+par(mfrow = c(1,1))
+```
+
+
+### Find maximum contributor
+
+```{r dependson="svdChunk",fig.height=5,fig.width=6,cache=TRUE,tidy=TRUE}
+plot(svd1$v[,2],pch=19)
+
+plot(sub1[,296],col=sub1$activityID,ylab=names(sub1[296]))
+
+```
+
+
+
+###  New clustering with maximum contributer
+
+```{r dependson="svdChunk",fig.height=5,fig.width=8,cache=TRUE,tidy=TRUE}
+maxContrib <- which.max(svd1$v[,2])
+distanceMatrix <- dist(sub1[, c(10:12,maxContrib)])
+hclustering <- hclust(distanceMatrix)
+myplclust(hclustering,lab.col=unclass(sub1$activityID))                             
+```
+
+
+---
+
+###  Maximum contributer: top 5 contributer
+
+```{r dependson="svdChunk",fig.height=4.5,fig.width=4.5,cache=TRUE}
+names(samsungData)[maxContrib]
+(topN<-order(svd1$v[,2],decreasing=T)[1:5])
+n<-names(samsungData)[topN]
+r<-svd1$v[,2][topN]
+rbind(n,r)
+
+qplot(sub1[,296],col=sub1$activityID,xlab=names(sub1[296]),binwidth=2./30,fill=sub1$activityID)
+```
+
+
+
+### kmean clustering
+```{r}
+#kClust <- kmeans(sub1[, -c(562, 563)], centers = 6)
+kClust <- kmeans(sub1[, -c(562:564)], centers = 6)
+table(kClust$cluster, sub1$activityID)
+
+#kClust <- kmeans(sub1[, -c(562, 563)], centers = 6, nstart = 1)
+kClust <- kmeans(sub1[, -c(562:564)], centers = 6, nstart=1)
+table(kClust$cluster, sub1$activityID)
+
+#kClust <- kmeans(sub1[, -c(562, 563)], centers = 6, nstart = 100)
+kClust <- kmeans(sub1[, -c(562:564)], centers = 6, nstart=100)
+table(kClust$cluster, sub1$activityID)
+```
+
+
+----
+
+Analysis all subjects
+------------------------------------------------------------
+##
+
+## Check the predictor variables are normalized and scaled to the range[-1,1].
+```{r rangeCheck,echo=TRUE}
+library(plyr)
+numPredictors = ncol(samsungData)-3
+dataSd = colwise(sd)(samsungData[,1:numPredictors])
+dataSd$stat = "Predictor Variable Standard Deviation"
+dataMean = colwise(mean)(samsungData[, 1:numPredictors])
+dataMean$stat = "Predictor Variable Mean"
+library(reshape2)
+temp = melt(rbind(dataMean, dataSd), c("stat"))
+qplot(data = temp, x = value, binwidth = 0.025) + facet_wrap(~stat, ncol = 1)
+remove(dataSd, dataMean, temp)
+```
+If each variable was z-scaled, the mean would be approximately zero and the standard deviation would be 1. These variables may be normalized, but they are not z-scaled. If we intend to use modeling methods that are sensitive to feature scaling, we might want to do some preprocessing.
+
+Looking one subject
+
+## Preprocessing
+
+*caret* package offers several options for preprocessing continuous variables such as the predictors in the UCI HAR dataset. We will prepare several different versions of the predictor matrix to compare how these perform when we build a predictive model.
+### Z-scaling
+```{r zScaling}
+library(lattice)
+library(caret)
+zScaleTrain = preProcess(train[, 1:numPredictors])
+scaledX = predict(zScaleTrain, train[, 1:numPredictors])
+head(names(scaledX))
+```
+
+### Near Zero Variance Predictor Detection
+```{r nearZero,echo=TRUE}
+nzv = nearZeroVar(scaledX, saveMetrics = TRUE)
+summary(nzv)
+head(nzv[order(nzv$percentUnique, decreasing = FALSE), ], n = 20)
+head(nzv[order(nzv$freqRatio, decreasing = TRUE), ], n = 20)
+
+```
+
+
+### Find and Remove Highly Correlated Predictors
+```{r}
+#correlatedPredictors = findCorrelation(cor(scaledX), cutoff = 0.95)
+correlatedPredictors = findCorrelation(cor(scaledX), cutoff = 0.8)
+```
+There are `r length(correlatedPredictors)` correlated predictors to remove
+
+```{r}
+reducedCorrelationX = scaledX[, -correlatedPredictors]
+head(names(reducedCorrelationX))
+```
+The reduced correlation predictor set retains `r dim(reducedCorrelationX)[2]` variables.
+
+
+### PCA Transformed Predictors
+```{r}
+pcaTrain = preProcess(scaledX, method = "pca", thresh = 0.99)
+```
+The PCA transformed data retains `r pcaTrain$numCop` components to capture 99% of the variance.
+
+```{r}
+pcaX = predict(pcaTrain, scaledX)
+head(names(pcaX))
+```
+After PCA, the original predictor names are no longer available in a straightforward manner.
+
+### Data Splitting
+
+An important aspect of predictive modeling is ensuring that we can accurately predict model performance on unseen data; when we deploy our model, our reputation and that of our employer are often impacted by how our model performs. For the UCI HAR data, our test set is a strict hold-out sample. We will not use this set for model development or model selection.
+
+Our training data set is not tiny, but neither is it large. We have data examples from a limited number of experimental subjects. My technical approach will be to use cross-validation by experimental subject for model selection. There are 21 training subjects. If we wish to cross-validate over every experimental subject, we can generate sets of training sample indices like this:
+
+```{r}
+leaveOneSubjectOutIndices = lapply(levels(train$subject), function(X) {
+    which(!X == train$subject)
+})
+```
+If instead we want to control computation time, we can create a different partition.
+
+```{r}
+cvBreaks = 7
+temp = sample(levels(train$subjectID), length(levels(train$subjectID)))  # randomize subjects
+temp = split(temp, cut(1:length(temp), breaks = cvBreaks, labels = FALSE))  # split into CV groups
+cvGroupIndices = lapply(temp, function(X) {
+    which(!train$subject %in% X)
+})
+```
+
+
+### Model Training
+
+#### Set up parallel processing
+```{r}
+library(parallel)
+cl = parallel::makeForkCluster(nnodes = detectCores()/2)
+setDefaultCluster(cl)
+library(doParallel)
+
+registerDoParallel(cl)
+getDoParWorkers()
+```
+
+#### Train a Random Forest model using method='rf'
+
+```{r}
+saveFile = paste(DataDirectory, "modelRF.RData", sep = "")
+if (!file.exists(saveFile)) {
+    rfCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices, classProbs = TRUE)
+    modelRF = train(reducedCorrelationX, train$activityID, method = "rf", trControl = rfCtrl, tuneGrid = data.frame(.mtry = c(2, 5, 10, 15, 20)), importance = TRUE)
+    save(rfCtrl, modelRF, correlatedPredictors, zScaleTrain, file = saveFile)
+}
+if (!exists("modelRF")) {
+    load(saveFile)
+}
+print(modelRF)
+plot(modelRF)
+print(confusionMatrix(modelRF))
+m = as.data.frame(modelRF$finalModel$importance)
+m = m[order(m$MeanDecreaseAccuracy, decreasing = TRUE), ]
+head(m, n = 20)
+
+```
+
+
+#### Train a Random Forest model using method='parRF'
+
+```{r}
+saveFile = paste(DataDirectory, "modelParRF.RData", sep = "")
+if (!file.exists(saveFile)) {
+    parRfCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices, classProbs = TRUE)
+    modelParRF = train(reducedCorrelationX, train$activityID, method = "parRF", trControl = parRfCtrl, tuneGrid = data.frame(.mtry = c(2, 5, 10, 15, 20)), importance = TRUE)
+    save(parRfCtrl, modelParRF, correlatedPredictors, zScaleTrain, file = saveFile)
+}
+if (!exists("modelParRF")) {
+    load(saveFile)
+}
+print(modelParRF)
+plot(modelParRF)
+print(confusionMatrix(modelParRF))
+```
+
+
+#### Train using a simpler model
+
+```{r}
+saveFile = paste(DataDirectory, "modelKnn.RData", sep = "")
+if (!file.exists(saveFile)) {
+    knnCtrl = trainControl(method = "cv", number = length(cvGroupIndices), index = cvGroupIndices,   classProbs = TRUE)
+    modelKnn = train(reducedCorrelationX, train$activityID, method = "knn", trControl = knnCtrl, tuneGrid = data.frame(.k = c(5, 10, 15, 20)))
+    save(knnCtrl, modelKnn, correlatedPredictors, zScaleTrain, file = saveFile)
+}
+if (!exists("modelKnn")) {
+    load(saveFile)
+}
+print(modelKnn)
+confusionMatrix(modelKnn)
+```
+
+#### Selecting the “best” model
+
+For simplicity, we will choose the best model based on overall cross-validation accuracy which leaves us with one of the random forest models.
+
+```{r}
+bestModel = modelRF
+```
+
+#### Predicting generalization performance
+
+```{r}
+holdoutX = predict(zScaleTrain, test[, 1:numPredictors])[, -correlatedPredictors]
+holdoutLabels = test$activityID
+holdoutPrediction = predict(bestModel, holdoutX)
+head(holdoutPrediction)
+classProbPrediction = predict(bestModel, holdoutX, type = "prob")
+head(classProbPrediction)
+
+holdoutConfusionMatrix = confusionMatrix(holdoutPrediction, holdoutLabels)
+print(holdoutConfusionMatrix)
+```
+
+#### Comparison of holdout predictions and cross-validation predictions
+
+```{r}
+print(confusionMatrix(bestModel), digits = 2)
+print(100 * (holdoutConfusionMatrix$table/sum(holdoutConfusionMatrix$table)), digits = 1)
+save.image(file = "workspaceImage.RData")
+```
