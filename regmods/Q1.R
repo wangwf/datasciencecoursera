@@ -17,6 +17,9 @@ y1 <- y - mean(y)
 plot(x1, y1,pch=19, cex=1.1)
 abline(0, beta)
 
+##   using y= beta*x,   lm(y~x-1) where -1 means remove constant
+lm(y~x-1)
+
 ##q3
 
 data(mtcars)
