@@ -1,6 +1,12 @@
 
+
+“Is an automatic or manual transmission better for MPG”
+“Quantifying how different is the MPG between automatic and manual transmissions?”
+
 ```{r}
 data(mtcars);
+?mtcars
+
 mtcars<-transform(mtcars, am=factor(am))
 
 pairs(mtcars, panel = panel.smooth)
