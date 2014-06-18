@@ -1,0 +1,15 @@
+
+```{r}
+data(mtcars);
+mtcars<-transform(mtcars, am=factor(am))
+
+pairs(mtcars, panel = panel.smooth)
+
+require(datasets);data(mtcars)
+require(stats); require(graphics)
+boxplot(mpg ~ am, data = mtcars,
+        xlab = "transimission", ylab = "MPG",
+        main = "mtcars data", varwidth = TRUE, col = "lightgray")
+
+summary(lm(mpg~am-1, data=mtcars))$coef
+```
