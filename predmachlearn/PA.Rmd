@@ -1,18 +1,22 @@
+
+Practicle Machine learning project -- predict the weavable activities
+====================================
+
+## introduction
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible
 to collect a large amount of data about personal activity relatively inexpensively.
 These type of devices are part of the quantified self movement – a group of
 enthusiasts who take measurements about themselves regularly to improve their
 health, to find patterns in their behavior, or because they are tech geeks.
 One thing that people regularly do is quantify how much of a particular activity
-they do, but they rarely quantify how well they do it. In this project, your goal
-will be to use data from accelerometers on the belt, forearm, arm, and dumbell
-of 6 participants. They were asked to perform barbell lifts correctly and
-incorrectly in 5 different ways. More information is available from the website
+they do, but they rarely quantify how well they do it.
+
+In this project, the goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website
 here: http://groupware.les.inf.puc-rio.br/har
 (see the section on the Weight Lifting Exercise Dataset). 
 
 
-Data
+### Data
 ==========================================================
 The training data for this project are available here: 
 
@@ -22,11 +26,8 @@ The test data are available here:
 
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
 
-The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment. 
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. 
 
-
-Loading and preprocessing the data.
----------------------------------------------------
 The data can be downloaded using the below R script.
 ```{r download_file,echo=TRUE}
 downloadFiles<-function(
@@ -40,44 +41,99 @@ downloadFiles<-function(
     }
 ```
 
+### loading training and testing dataset
 ```{r activity_data,echo=TRUE}
 trainURL<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 testURL <-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 downloadFiles(trainURL, "pml-training.csv")
 downloadFiles(testURL, "pml-test.csv")
 
-training <- read.csv("pml-training.csv")
-testing <-read.csv("pml-test.csv")
+training <- read.csv("pml-training.csv",na.strings=c("NA",""))
+testing <-read.csv("pml-test.csv",na.strings=c("NA",""))
 ```
 
-training
+First look of training data
 ```{r}
+dim(training)
 str(training)
+```
+
+The outcome is "classe" variable
+```{r}
 table(training$classe)
 ```
+The train dataset has 160 variables 19622 observations.
 
+### remove missing values, is.na() or ""
+```{r}
+var <- names(training)[apply(training,2,function(x) table(is.na(x))[1]==19622)]   
+train2<- training[,var]
+test2 <- testing[,var[-length(var)]]
+```
+
+# discards unuseful predictors, only considering numeric variable from HAR sensor
+```{r}
+removeIndex <- grep("timestamp|X|user_name|new_window|num_window",names(train2))
+train3 <- train2[,-c(removeIndex, length(train2))]
+test3  <- train2[,-c(removeIndex, length(train2))]
+```
+
+
+Check the near Zero covariates and correlation matrix
 removing zero covariates
 ```{r}
 library(caret)
-nzv <- nearZeroVar(training, saveMetrics=TRUE)
+nzv <- nearZeroVar(train3, saveMetrics=TRUE)
 nzv
-nzv <- nearZeroVar(training)
-training<-training[,-nzv]
+nzv[nzv$nzv,]
+```
+
+highly correlated covariates.
+```{r}
+corrM <- cor(train3)
+library(corrplot)
+corrplot(corrM, method="circle",tl.cex=0.5)
+```
+
+remove highly correlated
+```{r}
+highCorr <- findCorrelation(corrM, cutoff = .75)     # high correlation
+predictor <- train3[, -highCorr]            # dataframe of train predictors
+filtered.test4 <- test3[, -highCorr]        # dataframe of test predictors
+classe<-train2$classe                                       # target variable
+trainData<-cbind(classe,predictor)    
+```
+
+Random Forest, to predic
+```{r}
+library(randomForest)
+rfModel <- randomForest(train2$classe ~ .,data = trainData,importance = TRUE,ntrees = 10)
+print(rfModel)
+
+par(mar=c(3,4,4,4))                               
+plot(rfModel)  
+varImpPlot(rfModel,cex=.5)  
+out.test<-predict(rfModel,filtered.test4)        #
+```
+
+
+### saving the output
+```{r}
+answers<- as.vector(out.test)
+
+pml_write_files = function(x){
+#  n = length(x)
+    n=20
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers)
 ```
 
 ```{r}
-#M <- abs(cor(training[,-c(2,5,100)]))
-#diag(M) <- 0
-#which(M>0.8, arr.ind=T)
-#prComp <- prcomp(training[,-160])
-#preProc <- preProcess(training[,-160], method="pca", pcaComp=2)
-preProc <- preProcess(training[,-c(2,5,100)], method="pca", thresh=0.8)
-trainingPC <- predict(preProc,training[,-c(2,5,100)] )
-
+# make model
+modFit <- train(trainData$classe ~.,data = trainData,method="rpart")
+modFit
 ```
-
-```{r}
-modFit <- train(classe~., data=training, method="rpart", prox=TRUE)
-modFit$finalModel
-```
-
