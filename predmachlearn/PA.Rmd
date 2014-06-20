@@ -42,7 +42,7 @@ downloadFiles<-function(
 ```
 
 ### loading training and testing dataset
-```{r activity_data,echo=TRUE}
+```{r loaddata,echo=TRUE}
 trainURL<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 testURL <-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 downloadFiles(trainURL, "pml-training.csv")
@@ -53,35 +53,35 @@ testing <-read.csv("pml-test.csv",na.strings=c("NA",""))
 ```
 
 First look of training data
-```{r}
+```{r dimTraing,echo=TRUE}
 dim(training)
 str(training)
 ```
 
 The outcome is "classe" variable
-```{r}
+```{r outcomeVar,echo=TRUE}
 table(training$classe)
 ```
 The train dataset has 160 variables 19622 observations.
 
 ### remove missing values, is.na() or ""
-```{r}
+```{r missingValues,echo=TRUE}
 var <- names(training)[apply(training,2,function(x) table(is.na(x))[1]==19622)]   
 train2<- training[,var]
-test2 <- testing[,var[-length(var)]]
+test2 <- testing[,c(var[-length(var)],names(testing)[length(testing)])] # test dataset no classe variable
 ```
 
 # discards unuseful predictors, only considering numeric variable from HAR sensor
-```{r}
+```{r discardsUnsed,echo=TRUE}
 removeIndex <- grep("timestamp|X|user_name|new_window|num_window",names(train2))
 train3 <- train2[,-c(removeIndex, length(train2))]
-test3  <- train2[,-c(removeIndex, length(train2))]
+test3  <- test2[,-c(removeIndex, length(test2))]
 ```
 
 
 Check the near Zero covariates and correlation matrix
 removing zero covariates
-```{r}
+```{r nearZero,echo=TRUE}
 library(caret)
 nzv <- nearZeroVar(train3, saveMetrics=TRUE)
 nzv
@@ -89,50 +89,91 @@ nzv[nzv$nzv,]
 ```
 
 highly correlated covariates.
-```{r}
+```{r checkCorrelation,echo=TRUE}
 corrM <- cor(train3)
 library(corrplot)
 corrplot(corrM, method="circle",tl.cex=0.5)
 ```
 
 remove highly correlated
-```{r}
+```{r removeHighCor,echo=TRUE}
 highCorr <- findCorrelation(corrM, cutoff = .75)     # high correlation
-predictor <- train3[, -highCorr]            # dataframe of train predictors
-filtered.test4 <- test3[, -highCorr]        # dataframe of test predictors
-classe<-train2$classe                                       # target variable
-trainData<-cbind(classe,predictor)    
+
+train4<-cbind(classe=train2$classe,train3[,-highCorr])    
+
+test4 <- test3[, -highCorr]        # dataframe of test predictors
+
 ```
 
-Random Forest, to predic
-```{r}
+### Split training dataset into training/testing for model evaulation
+```{r,splitSample,echo=TRUE}
+set.seed(1234)
+inTrain = createDataPartition(train4$classe, p = 3/4)[[1]]
+trainPart = train4[ inTrain,]
+testPart =  train4[-inTrain,]
+
+```
+
+Random Forest algorithm to predict.
+```{r randomForest, echo=TRUE}
 library(randomForest)
-rfModel <- randomForest(train2$classe ~ .,data = trainData,importance = TRUE,ntrees = 500)
+rfModel <- randomForest(classe ~ .,data = trainPart,importance = TRUE,ntrees = 500)
 print(rfModel)
 
 par(mar=c(3,4,4,4))                               
 plot(rfModel)  
 varImpPlot(rfModel,cex=.5)  
-out.test<-predict(rfModel,filtered.test4)        #
 ```
 
-```{r}
+Test sample and cross validation
+```{r testAndCrossValidataion}
+out.test<-predict(rfModel,testPart) 
+table(testData$classe, out.test)
+
+out.test<-predict(rfModel,test4) 
+out.test[1:20]
+```
+
+
+### k fold cross validataion, which takes too much computing time
+```{r kfold, echo=FALSE,eval=FALSE}
 # make model
 tc <- trainControl("cv", 10, savePred=T)
-modFit <- train(train2$classe ~.,data = trainData,method="rf", trainControl=tc)
+modFit <- train(classe ~.,data = trainPart,method="rf", trainControl=tc)
 modFit
 modFit$finalModel
-out.test2<-predict(modFit,filtered.test4)   
+
+out.test<-predict(rfModel,testPart) 
+table(testData$classe, out.test)
+
+out.test2<-predict(modFit,test4)   
 out.test2[1:20]
 ```
 
+### PCA with threshold 0.80, two misclassified in the first 20.
+```{r pca, echo=TRUE}
+preProc <- preProcess(trainPart[,-1], method="pca", thresh=0.8)
+trainPC <- predict(preProc, trainPart[,-1])
+#modPC <- train(trainPart$classe~., method="rf", data=trainPC)
+modPC <- randomForest(trainPart$classe~., data=trainPC, importance=TRUE, ntree=10)
+
+testPC <- predict(preProc, testPart[,-1])
+out.testPC<-predict(modPC, newdata=testPC)
+table(out.testPC, testPart$classe)
+
+testPC <- predict(preProc, test4)
+out.testPC<-predict(modPC, newdata=testPC)
+
+out.testPC[1:20]  # the 1st and 3rd mis-classified
+out.test[1:20]==out.testPC[1:20]
+```
+
 ### saving the output
-```{r}
-#answers<- as.vector(out.test)
-answers = rep("A", 20)
+```{r saveOutput,echo=TRUE}
+answers<- as.vector(out.test[1:20])
+#answers = rep("A", 20)
 pml_write_files = function(x){
-#  n = length(x)
-    n=20
+  n = length(x)
   for(i in 1:n){
     filename = paste0("problem_id_",i,".txt")
     write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
