@@ -4,12 +4,15 @@
 “Quantifying how different is the MPG between automatic and manual transmissions?”
 
 ```{r}
-data(mtcars);
+library(datasets); data(mtcars); require(stats); require(graphics)
 ?mtcars
+pairs(mtcars, panel=panel.smooth, main="mtcars data",col=mtcars$am)
+```
 
+
+```{r}
 mtcars<-transform(mtcars, am=factor(am))
 
-pairs(mtcars, panel = panel.smooth)
 
 require(datasets);data(mtcars)
 require(stats); require(graphics)
@@ -18,4 +21,20 @@ boxplot(mpg ~ am, data = mtcars,
         main = "mtcars data", varwidth = TRUE, col = "lightgray")
 
 summary(lm(mpg~am-1, data=mtcars))$coef
+```
+
+```{r}
+ summary(lm(mpg~., data=mtcars))
+
+ summary(lm(mpg~., data=mtcars[,-c(5,8,10,11)]))
+
+summary(lm(mpg~wt+am, data=mtcars[,-c(5,8,10,11)]))
+```
+
+```{r}
+plot(mtcars$wt,mtcars$mpg,col=mtcars$am)
+fit1<- lm(mpg~wt+am, data=mtcars[,-c(5,8,10,11)])
+e <- summary(fit1)$coef
+abline(c(e[1,1], e[2,1] ), col="red", lwd=3 )
+abline(c(e[1,1], e[2,1]+e[3,1]), col="black", lwd=3)
 ```
