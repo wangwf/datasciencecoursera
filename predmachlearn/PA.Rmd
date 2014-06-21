@@ -1,5 +1,5 @@
 
-Practicle Machine learning project -- predict the weavable activities
+Practicle Machine learning project -- personal activity prediction
 ====================================
 
 ## introduction
