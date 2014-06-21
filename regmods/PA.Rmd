@@ -137,5 +137,5 @@ Answers are model -dependent
 - Models show no significatn different 
 
 ```{r}
-
+anova(fit1,fit2,fit3)
 ```

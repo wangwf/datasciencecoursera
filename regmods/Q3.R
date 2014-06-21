@@ -10,9 +10,11 @@ summary(lm2)$coef[3,1]
 summary(lm(mpg~cyl+wt, data=mtcars))$coef
 summary(lm(mpg~cyl, data=mtcars))$coef
 
-#q3
+#q3  02_05.pdf page14
 summary(lm(mpg~cyl+wt+wt*cyl, data=mtcars))
-
+fit1<-lm(mpg~cyl+wt, data=mtcars)
+fit2<-update(fit1, mpg~cyl+wt+wt*cyl)
+anova(fit1,fit2)
 
 #q4
 summary(lm(mpg~I(wt*0.5)+factor(cyl), data=mtcars))$coef
