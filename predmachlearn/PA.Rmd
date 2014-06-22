@@ -55,7 +55,7 @@ testing <-read.csv("pml-test.csv",na.strings=c("NA",""))
 First look of training data
 ```{r dimTraing,echo=TRUE}
 dim(training)
-str(training)
+#str(training)
 ```
 
 The outcome is "classe" variable
@@ -71,7 +71,8 @@ train2<- training[,var]
 test2 <- testing[,c(var[-length(var)],names(testing)[length(testing)])] # test dataset no classe variable
 ```
 
-# discards unuseful predictors, only considering numeric variable from HAR sensor
+### discards unuseful predictors
+Only considering numeric variable from HAR sensor
 ```{r discardsUnsed,echo=TRUE}
 removeIndex <- grep("timestamp|X|user_name|new_window|num_window",names(train2))
 train3 <- train2[,-c(removeIndex, length(train2))]
@@ -79,7 +80,7 @@ test3  <- test2[,-c(removeIndex, length(test2))]
 ```
 
 
-Check the near Zero covariates and correlation matrix
+### Check the near Zero covariates and correlation matrix
 removing zero covariates
 ```{r nearZero,echo=TRUE}
 library(caret)
@@ -88,21 +89,15 @@ nzv
 nzv[nzv$nzv,]
 ```
 
-highly correlated covariates.
+### Remove highly correlated covariates.
 ```{r checkCorrelation,echo=TRUE}
 corrM <- cor(train3)
 library(corrplot)
 corrplot(corrM, method="circle",tl.cex=0.5)
-```
 
-remove highly correlated
-```{r removeHighCor,echo=TRUE}
 highCorr <- findCorrelation(corrM, cutoff = .75)     # high correlation
-
 train4<-cbind(classe=train2$classe,train3[,-highCorr])    
-
 test4 <- test3[, -highCorr]        # dataframe of test predictors
-
 ```
 
 ### Split training dataset into training/testing for model evaulation
@@ -114,7 +109,7 @@ testPart =  train4[-inTrain,]
 
 ```
 
-Random Forest algorithm to predict.
+### Random Forest algorithm to predict.
 ```{r randomForest, echo=TRUE}
 library(randomForest)
 rfModel <- randomForest(classe ~ .,data = trainPart,importance = TRUE,ntrees = 500)
@@ -125,7 +120,7 @@ plot(rfModel)
 varImpPlot(rfModel,cex=.5)  
 ```
 
-Test sample and cross validation
+### Test sample and cross validation
 ```{r testAndCrossValidataion}
 out.test<-predict(rfModel,testPart) 
 table(testData$classe, out.test)
@@ -133,7 +128,6 @@ table(testData$classe, out.test)
 out.test<-predict(rfModel,test4) 
 out.test[1:20]
 ```
-
 
 ### k fold cross validataion, which takes too much computing time
 ```{r kfold, echo=FALSE,eval=FALSE}

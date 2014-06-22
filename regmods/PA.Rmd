@@ -2,16 +2,17 @@
 Peer Assessments -- Regression Models
 ==============================================================================
 
-Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome).
--“Is an automatic or manual transmission better for MPG”
--“Quantifying how different is the MPG between automatic and manual transmissions?”
+Looking at a data set of a collection of cars, mtcars, we are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome), especially the below two questions:
+* “Is an automatic or manual transmission better for MPG?”
+* “Quantifying how different is the MPG between automatic and manual transmissions?”
 
+### Loading dataset
 ```{r loadData,echo=TRUE}
 library(datasets); data(mtcars); require(stats); require(graphics)
 ?mtcars
 ```
 
-### explory data
+### Explory data
 
 correlation matrix
 ```{r cor,echo=TRUE}
@@ -20,15 +21,11 @@ library(corrplot)
 #corrplot(corMat, method="circle",tl.cex=0.5)
 corrplot.mixed(corMat)
 ```
+
 It shows that the varialbes in mtcars dataset are strongly correlated.
 
-```{r pairplot,echo=TRUE}
-pairs(mtcars, panel=panel.smooth, main="mtcars data",col=mtcars$am)
-```
----
-
-### First look the 
-```{r amplots,echo=TRUE,fig.width=10,fig.height=16}
+### Look the relationship between *am* and other variables
+```{r amplots,echo=FALSE,fig.width=10,fig.height=16}
 mtcars<-transform(mtcars, am=factor(am))
 
 
@@ -72,7 +69,6 @@ $$ mpg_i = \sum_{k=1}^p X_{ik} \beta_j + \epsilon_{i} $$
 * Two variates linear regession ()
 $$ mpg_i = \beta_0 + am_{i1} \beta_1 + wt_{i1} \beta_2 + \epsilon_{i} $$
 
----
 
 ### linear model1
 $$
@@ -90,7 +86,7 @@ manual transimission is 7.2 mpg better.
 # e<-resid(fit1)
  boxplot(mtcars$am,resid(fit1), xlab="Transimission", ylab="resid")
 
- (am1<-summary(fit1$coef))
+ summary(fit1)$coef
 ```
 ---
 
@@ -105,12 +101,10 @@ $$
 
 ```{r model2,echo=TRUE}
 fit2 <- lm(mpg~., data=mtcars)
-e <-fit2$coefficients
-summary(fit2)
+summary(fit2)$coef
 ```
 
 
----
 ### linear model3
 $$ mpg_i = \beta_0 + am_{i1} \beta_1 + wt_{i1} \beta_2 + \epsilon_{i} $$
 * $\beta_0 =37.2\pm 3.1 $, $\beta_1 = -0.02\pm 1.55$, $beta_3 = -5.35\pm 0.79$.
@@ -118,24 +112,26 @@ $$ mpg_i = \beta_0 + am_{i1} \beta_1 + wt_{i1} \beta_2 + \epsilon_{i} $$
 ```{r}
 
 fit3 <- lm(mpg~ am+wt, data=mtcars)
-e <-fit3$coefficients
-summary(fit3)
+e <-summary(fit3)$coefficients
+e
 
 plot(mpg~wt,col=am+2, data=mtcars)
-e <- summary(fit3)$coef
 abline(c(e[1,1], e[2,1] ), col="red", lwd=3 )
 abline(c(e[1,1], e[2,1]+e[3,1]), col="black", lwd=3)
 ```
 
----
 ## Summary
 Two Questions
-*“Is an automatic or manual transmission better for MPG”
-*“Quantifying how different is the MPG between automatic and manual transmissions?”
+* “Is an automatic or manual transmission better for MPG?”
+* “Quantifying how different is the MPG between automatic and manual transmissions?”
+
 Answers are model -dependent
-- Model1 and model2 show manual transimission are better, the quantity is different.
-- Models show no significatn different 
+* Model1 and model2 show manual transimission are better, the quantity is different.
+* Model3 show no significatn different 
 
 ```{r}
-anova(fit1,fit2,fit3)
+anova(fit1,fit3,fit2)
 ```
+Anova table shows:
+* Model3 is better than model1. p-value is less than 0.05, rejecting the null hypthosis, which means the *wt* variable may be necessary;
+* Model3 is also better than model2. p-value is larger than 0.05, fail to reject the null hypthosis, means the other variables may not be necessary.
