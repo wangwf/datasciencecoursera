@@ -28,7 +28,7 @@ diag(corMat) <- 0 # remove diagonal items
 corrplot(corMat, "circle")
 ```
 
-![plot of chunk generat matrix](assets/fig/generat matrix.png) 
+![plot of chunk generat matrix](figure/generat matrix.png) 
 
 --- .class #id 
 
@@ -38,7 +38,7 @@ corrplot(corMat, "circle")
 corrplot(corMat, "square")
 ```
 
-![plot of chunk square](assets/fig/square.png) 
+![plot of chunk square](figure/square.png) 
 
 --- .class #id 
 
@@ -48,7 +48,7 @@ corrplot(corMat, "square")
 corrplot(corMat, "number")
 ```
 
-![plot of chunk number](assets/fig/number.png) 
+![plot of chunk number](figure/number.png) 
 --- .class #id 
 
 ## Slide 5
@@ -58,5 +58,5 @@ corrplot(corMat, "number")
 corrplot(corMat, "pie")
 ```
 
-![plot of chunk pie](assets/fig/pie.png) 
+![plot of chunk pie](figure/pie.png) 
 --- .class #id 
