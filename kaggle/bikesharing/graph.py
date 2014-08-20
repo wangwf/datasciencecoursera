@@ -1,10 +1,10 @@
 import graphlab
 import os
 env = graphlab.deploy.environments("async")
-data_dir = ""
-results_path = ""
-train_url = os.path.join(data_dir, "kaggle-bike-train")
-test_url = os.path.join(data_dir,"kaggle-bike-test")
+data_dir = "./"
+results_path = "./"
+train_url = os.path.join(data_dir, "data")
+test_url = os.path.join(data_dir,"data")
 
 #boosted tree model
 standard_model_params = {'target_column':'log(count)','num_iterations':50}
@@ -13,7 +13,7 @@ hyper_params ={'step_size':[0.05],
                'max_depth':[8,10,15],
                'min_child_weight':[5,10]
                }
-job = graphlab.toolkits.model_parameter_search(env, graphlab.boosted_trees_ ,
+job = graphlab.toolkits.model_parameter_search(env, graphlab.boosted_trees,
                                                train_set = train_url,
                                                save_path = results_path,
                                                standard_model_parameter=standard_model_params,
