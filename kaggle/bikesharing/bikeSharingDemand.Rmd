@@ -138,6 +138,7 @@ testSet$hour <- strftime(testSet$datetime, format="%H")
 ```
 
 ```{r}
+library(caret)
 ind <- createDataPartition(y=trainSet$count, p=0.7, list=F)
 mytrainSet <- trainSet[ind,]
 mytestSet <- trainSet[-ind,]
@@ -232,7 +233,7 @@ rfmodel2 <- randomForest(f2, data=trainSet)
 importance(rfmodel2)
 p1 <- predict(rfmodel1, newdata=trainSet)
 p2 <- predict(rfmodel2, newdata=trainSet)
-p12 <- round(10^p1 + 10^p2)
+p12 <- round(10^p1 + 10^p2-2)
 BikeEva(trainSet$count, p12)
 
 pt1 <- predict(rfmodel1, newdata=testSet)
@@ -246,9 +247,10 @@ submitted .
 
 ```{r}
 library(RWeka)
-mod1 <- MSP(f1, data=trainSet)
-mod2 <- MSP(f2, data=trainSet)
-p1 <- predict(rfmodel1, newdata=trainSet)
-p2 <- predict(rfmodel2, newdata=trainSet)
-p12 <- round(10^p1 + 10^p2)
+mod1 <- M5P(f1, data=trainSet)
+mod2 <- M5P(f2, data=trainSet)
+p1 <- predict(mode1, newdata=trainSet)
+p2 <- predict(model2, newdata=trainSet)
+p12 <- round(10^p1 + 10^p2 -2)
 BikeEva(trainSet$count, p12)
+```
