@@ -60,6 +60,11 @@ hist(trainSet$windspeed)
 par(mfrow=c(1,1))
 ```
 
+Correlation Matrix
+```{r corrlationMatrix}
+round(cor(trainSet[,-1]),3)
+```
+
 SeasonDependecen
 ```{r seasonDependence}
 library(ggplot2)
@@ -119,14 +124,11 @@ cor(trainSet$casual, trainSet$windspeed)
 cor(trainSet$registered, trainSet$windspeed)
 ```
 
-Correlation Matrix
-```{r}
-round(cor(trainSet[,-1]))
-```
+
  
  Converting datetime from factor to datetime variable, then split on date and time.
 
-```{r}
+```{r variableConvert}
 trainSet<- transform(trainSet, season=factor(season), holiday=factor(holiday), workingday=factor(workingday), weather=factor(weather))
 trainSet$date <- strftime(trainSet$datetime, format="%Y-%m-%d")
 trainSet$hour <- strftime(trainSet$datetime, format="%H")
@@ -137,15 +139,7 @@ testSet$hour <- strftime(testSet$datetime, format="%H")
 
 ```
 
-```{r}
-library(caret)
-ind <- createDataPartition(y=trainSet$count, p=0.7, list=F)
-mytrainSet <- trainSet[ind,]
-mytestSet <- trainSet[-ind,]
-
-```
-
-```{r, echo=FALSE}
+```{r functions, echo=FALSE}
 outputFile<-function(p){
     output <- subset(testSet, select='datetime')
     output$count<-p
@@ -158,16 +152,83 @@ BikeEva <- function(data, pred){
     return(sqrt(1/length(data) * sum((log(pred + 1) - log(data+1))^2)))
 }
 ```
+
+
+
 ## Train models
+
+```{r sampleSplit}
+library(caret)
+ind <- createDataPartition(y=trainSet$count, p=0.7, list=F)
+mytrainSet <- trainSet[ind,]
+mytestSet  <- trainSet[-ind,]
+
+```
+
+### Linear Model
 ```{r model1}
-lm1 <-lm(count ~temp+humidity+hour, data=trainSet)
-p<-round(predict(lm1, newdata=trainSet))
-plot(trainSet$count, p)
-BikeEva(trainSet$count,p)
+lm1 <-lm(count ~temp+humidity+hour, data=mytrainSet)
+p<-round(predict(lm1, newdata=mytestSet))
+BikeEva(mytestSet$count,p)
+library(caret)
+#lm2 <-lm(count ~ ., data=trainSet, method="lm") #
+lm2 <- train(count ~temp + humidity + hour, data=mytrainSet, method="lm")
+p<-round(predict(lm2, newdata=mytestSet))
+BikeEva(mytestSet$count,p)
 ```
 
 
-```{r}
+```{r linearModel}
+library(caret)
+f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour + I(atemp^2))
+f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour + I(atemp^2))
+#f1 <- formula(log(casual+1)     ~ season+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
+#f2 <- formula(log(registered+1) ~ season+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
+lm11 <- lm(f1, data=mytrainSet)
+lm12 <- lm(f2, data=mytrainSet)
+
+p1 <- predict(lm11, newdata=mytestSet) #trainSet)
+p2 <- predict(lm12, newdata=mytestSet) #trainSet)
+p12 <- round(exp(p1) + exp(p2)-2)
+BikeEva(mytestSet$count, p12)
+```
+
+
+gbm
+```{r gbmModel}
+library(caret)
+#gbm1 <- train(f1, data=mytrainSet, method="lm")
+#gbm2 <- train(f2, data=mytrainSet, method="lm")
+gbm1 <- gbm(f1, data=mytrainSet)
+gbm2 <- gbm(f2, data=mytrainSet)
+p1<-round(predict(gbm1, newdata=mytestSet))
+p2<-round(predict(gbm2, newdata=mytestSet))
+p12 <- round(exp(p1) + exp(p2)-2)
+BikeEva(mytestSet$count, p12)
+```
+
+
+
+Boosting alo
+```{r cubistModel}
+#modelgbm <- train(count~.+ I(atemp^2) + I(hour^2), data=trainSet, method="cubist")
+#p<-round(predict(modelgbm, newdata=trainSet))
+#BikeEva(trainSet$count,p)
+
+cub1 <- train(f1, data=mytrainSet, method="cubist")
+cub2 <- train(f2, data=mytrainSet, method="cubist")
+#gbm1 <- gbm(f1, data=mytrainSet)
+#gbm2 <- gbm(f2, data=mytrainSet)
+p1<-round(predict(cub1, newdata=mytestSet))
+p2<-round(predict(cub2, newdata=mytestSet))
+p12 <- round(exp(p1) + exp(p2)-2)
+BikeEva(mytestSet$count, p12)
+```
+
+
+
+### rpart
+```{r rpartModel}
 library(rpart)
 ff <- formula(count ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
 modelRpart<- rpart(ff, data=trainSet)
@@ -179,11 +240,12 @@ ptest<- round(predict(modelRpart, newdata=testSet))
 outputFile(ptest)
 ```
 
-```{r}
+### Random Forest Models
+```{r rfModel}
 library(randomForest)
 modelRF <- randomForest(ff, data=trainSet)
 rfPred <- round(predict(modelRF, newdata=trainSet))
-importance(modeRF)
+importance(modelRF)
 plot(trainSet$count, rfPred)
 BikeEva(trainSet$count,rfPred)
 
@@ -191,42 +253,12 @@ ptest<- round(predict(modelRF, newdata=testSet))
 outputFile(ptest)
 ```
 
-
-```{r}
-libary(caret)
-#lm2 <-lm(count ~ ., data=trainSet, method="lm") #
-lm2 <- train(count ~temp+humidity+hour, data=trainSet, method="lm")
-p<-round(predict(lm2, newdata=trainSet))
-BikeEva(trainSet$count,p)
-
-#ptest<- round(predict(lm1, newdata=testSet))
-#outputFile(ptest)
-```
-
-```{r}
-modelgbm <- train(count~., data=trainSet, method="gbm")
-p<-round(predict(modelgbm, newdata=trainSet))
-BikeEva(trainSet$count,p)
-```
-
-```{r}
-modelgbm2 <- train(count~.+ I(atemp^2) + I(hour^2), data=trainSet, method="gbm")
-p<-round(predict(modelgbm2, newdata=trainSet))
-BikeEva(trainSet$count,p)
-```
-
-Boosting alo
-```{r}
-modelgbm <- train(count~.+ I(atemp^2) + I(hour^2), data=trainSet, method="cubist")
-p<-round(predict(modelgbm, newdata=trainSet))
-BikeEva(trainSet$count,p)
-```
-
-
-```{r}
+```{r rf2}
 library(randomForest)
 f1 <- formula(log(casual+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
 f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
+#f1 <- formula(log(casual+1)     ~ season+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
+#f2 <- formula(log(registered+1) ~ season+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
 rfmodel1 <- randomForest(f1, data=mytrainSet)
 importance(rfmodel1)
 rfmodel2 <- randomForest(f2, data=mytrainSet)
@@ -238,8 +270,8 @@ p2 <- predict(rfmodel2, newdata=mytestSet) #trainSet)
 p12 <- round(exp(p1) + exp(p2)-2)
 BikeEva(mytestSet$count, p12)
 ```
-```{r}
 
+```{r output2}
 pt1 <- predict(rfmodel1, newdata=testSet)
 pt2 <- predict(rfmodel2, newdata=testSet)
 pt12 <- round(exp(pt1) + exp(pt2)-2)
@@ -250,7 +282,7 @@ submitted  (0..
 
 
 RWeka packages failed
-```{r}
+```{r RWeka}
 library(RWeka)
 mod1 <- M5P(f1, data=trainSet)
 mod2 <- M5P(f2, data=trainSet)
