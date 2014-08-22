@@ -225,32 +225,37 @@ BikeEva(trainSet$count,p)
 
 ```{r}
 library(randomForest)
-f1 <- formula(log10(casual+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
-f2 <- formula(log10(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
-rfmodel1 <- randomForest(f1, data=trainSet)
+f1 <- formula(log(casual+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
+f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
+rfmodel1 <- randomForest(f1, data=mytrainSet)
 importance(rfmodel1)
-rfmodel2 <- randomForest(f2, data=trainSet)
+rfmodel2 <- randomForest(f2, data=mytrainSet)
 importance(rfmodel2)
-p1 <- predict(rfmodel1, newdata=trainSet)
-p2 <- predict(rfmodel2, newdata=trainSet)
-p12 <- round(10^p1 + 10^p2-2)
-BikeEva(trainSet$count, p12)
+
+p1 <- predict(rfmodel1, newdata=mytestSet) #trainSet)
+p2 <- predict(rfmodel2, newdata=mytestSet) #trainSet)
+#p12 <- round(10^p1 + 10^p2 -2)
+p12 <- round(exp(p1) + exp(p2)-2)
+BikeEva(mytestSet$count, p12)
+```
+```{r}
 
 pt1 <- predict(rfmodel1, newdata=testSet)
 pt2 <- predict(rfmodel2, newdata=testSet)
-pt12 <- round(10^pt1 + 10^pt2)
+pt12 <- round(exp(pt1) + exp(pt2)-2)
 outputFile(pt12)
 
 ```
-submitted .
+submitted  (0..
 
 
+RWeka packages failed
 ```{r}
 library(RWeka)
 mod1 <- M5P(f1, data=trainSet)
 mod2 <- M5P(f2, data=trainSet)
-p1 <- predict(mode1, newdata=trainSet)
-p2 <- predict(model2, newdata=trainSet)
-p12 <- round(10^p1 + 10^p2 -2)
+p1 <- predict(rfmodel1, newdata=trainSet)
+p2 <- predict(rfmodel2, newdata=trainSet)
+p12 <- round(10^p1 + 10^p2-2)
 BikeEva(trainSet$count, p12)
 ```
