@@ -125,18 +125,26 @@ cor(trainSet$registered, trainSet$windspeed)
 ```
 
 
- 
+ ### Features
  Converting datetime from factor to datetime variable, then split on date and time.
 
 ```{r variableConvert}
 trainSet$date <- strftime(trainSet$datetime, format="%Y-%m-%d")
+trainSet$year <- strftime(trainSet$datetime, format="%Y")
+trainSet$month <- strftime(trainSet$datetime, format="%m")
+trainSet$weekday <- weekdays(as.Date(trainSet$date, format="%Y-%m-%d"))
 trainSet$hour <- strftime(trainSet$datetime, format="%H")
+
 trainSet<- transform(trainSet, season=factor(season), holiday=factor(holiday), workingday=factor(workingday), weather=factor(weather),hour=factor(hour))
+trainSet<- transform(trainSet, year=factor(year), month=factor(month),weekday=factor(weekday))
 
 testSet$date <- strftime(testSet$datetime, format="%Y-%m-%d")
 testSet$hour <- strftime(testSet$datetime, format="%H")
+testSet$year <- strftime(testSet$datetime, format="%Y")
+testSet$month <- strftime(testSet$datetime, format="%m")
+testSet$weekday <- weekdays(as.Date(testSet$datetime, format="%Y-%m-%d"))
 testSet<- transform(testSet, season=factor(season), holiday=factor(holiday), workingday=factor(workingday), weather=factor(weather),hour=factor(hour))
-
+testSet<- transform(testSet, year=factor(year), month=factor(month),weekday=factor(weekday))
 ```
 
 ```{r functions, echo=FALSE}
@@ -180,8 +188,8 @@ BikeEva(mytestSet$count,p)
 
 ```{r linearModel}
 library(caret)
-f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour + I(atemp^2))
-f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour + I(atemp^2))
+f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour + year+month+weekday)
+f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour + year+month+weekday)
 #f1 <- formula(log(casual+1)     ~ season+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
 #f2 <- formula(log(registered+1) ~ season+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
 lm11 <- lm(f1, data=mytrainSet)
@@ -208,11 +216,16 @@ p12 <- round(exp(p1) + exp(p2)-2)
 BikeEva(mytestSet$count, p12)
 ```
 0.5710 not worth to submit
+0.5140 
 
 
 ```{r cubistModel}
-f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour )
-f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour )
+#f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour )
+#f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour )
+
+f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + year+month+weekday+hour )
+f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + year+month+weekday+hour )
+
 #modelgbm <- train(count~.+ I(atemp^2) + I(hour^2), data=trainSet, method="cubist")
 #p<-round(predict(modelgbm, newdata=trainSet))
 #BikeEva(trainSet$count,p)
@@ -227,7 +240,8 @@ p12 <- round(exp(p1) + exp(p2)-2)
 BikeEva(mytestSet$count, p12)
 ```
 0.412 rank 54 kaggle score 0.43308
-
+0.3060991 rank 11th kaggle score 0.39199
+ 
 ```{r cubistOUt}
 pt1 <- predict(cub1, newdata=testSet)
 pt2 <- predict(cub2, newdata=testSet)
@@ -256,22 +270,11 @@ outputFile(ptest)
 0.683 not a improve
 
 ### Random Forest Models
-```{r rfModel}
-library(randomForest)
-modelRF <- randomForest(ff, data=trainSet)
-rfPred <- round(predict(modelRF, newdata=trainSet))
-importance(modelRF)
-plot(trainSet$count, rfPred)
-BikeEva(trainSet$count,rfPred)
-
-ptest<- round(predict(modelRF, newdata=testSet))
-outputFile(ptest)
-```
 
 ```{r rf2}
 library(randomForest)
-f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour )
-f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour )
+f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour+year+month+weekday )
+f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour +year+month+weekday)
 #f1 <- formula(log(casual+1)     ~ season+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
 #f2 <- formula(log(registered+1) ~ season+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour)
 rfmodel1 <- randomForest(f1, data=mytrainSet)
@@ -285,7 +288,8 @@ p2 <- predict(rfmodel2, newdata=mytestSet) #trainSet)
 p12 <- round(exp(p1) + exp(p2)-2)
 BikeEva(mytestSet$count, p12)
 ```
-0.418 , 0.3987 (with hour^2)
+0.418, 0.3987 (with hour^2)
+0.360 (with year, month and weekday)
 
 ```{r output2}
 pt1 <- predict(rfmodel1, newdata=testSet)
@@ -300,10 +304,10 @@ submitted  (0..
 RWeka packages failed
 ```{r RWeka}
 library(RWeka)
-mod1 <- M5P(f1, data=trainSet)
-mod2 <- M5P(f2, data=trainSet)
-p1 <- predict(rfmodel1, newdata=trainSet)
-p2 <- predict(rfmodel2, newdata=trainSet)
-p12 <- round(10^p1 + 10^p2-2)
+mod1 <- M5P(f1, data=mytrainSet)
+mod2 <- M5P(f2, data=mytrainSet)
+p1 <- predict(mod1, newdata=mytestSet)
+p2 <- predict(mod2, newdata=mytestSet)
+p12 <- round(exp(p1) + exp(p2)-2)
 BikeEva(trainSet$count, p12)
 ```
