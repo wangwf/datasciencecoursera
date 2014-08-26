@@ -223,8 +223,8 @@ BikeEva(mytestSet$count, p12)
 #f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour )
 #f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + hour )
 
-f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + year+month+weekday+hour + I(atemp^2) + I(humidity^2))
-f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + year+month+weekday+hour + I(atemp^2) + I(humidity^2))
+f1 <- formula(log(casual+1)     ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + year+month+weekday+hour + I(atemp^2) + I(humidity^2) + I(windspeed^2))
+f2 <- formula(log(registered+1) ~ season+ holiday+ workingday+ weather+ temp+ atemp+  humidity +windspeed + year+month+weekday+hour + I(atemp^2) + I(humidity^2) + I(windspeed^2))
 
 #modelgbm <- train(count~.+ I(atemp^2) + I(hour^2), data=trainSet, method="cubist")
 #p<-round(predict(modelgbm, newdata=trainSet))
@@ -238,6 +238,7 @@ p1<- predict(cub1, newdata=mytestSet)
 p2<- predict(cub2, newdata=mytestSet)
 p12 <- round(exp(p1) + exp(p2)-2)
 BikeEva(mytestSet$count, p12)
+
 ```
 0.412 rank 54 kaggle score 0.43308
 0.3060991 rank 11th kaggle score 0.39199
