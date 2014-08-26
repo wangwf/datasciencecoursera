@@ -53,9 +53,9 @@ new_features = features + ['year', 'month', 'weekday', 'hour']
 new_features.remove('datetime')
 
 m1 = gl.boosted_trees.create(training_sframe, feature_columns = new_features,
-                             target_column="log-casual"]
+                             target_column="log-casual")
 m2 = gl.boosted_trees.create(training_sframe, feature_columns = new_features,
-                             target_column="log-registered"]
+                             target_column="log-registered")
 
 def fused_predict(m1, m2, test_sframe):
     """
