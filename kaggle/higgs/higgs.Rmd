@@ -33,7 +33,7 @@ setwd("/home/wenfeng/code/datasciencecoursera/kaggle/bikesharing")
 
 ```{r loaddata, echo=TRUE}
 trainSet <- read.csv("train.csv")
-testSet <- read.csv("test.csv")
+testSet  <- read.csv("test.csv")
 dim(trainSet)
 dim(testSet)
 names(trainSet)
@@ -49,15 +49,6 @@ summary(trainSet)
 
 ## Explore data
 ```{r }
-par(mfrow = c(3,3))
-hist(trainSet$season)
-hist(trainSet$holiday)
-hist(trainSet$workingday)
-hist(trainSet$weather)
-plot(trainSet$temp,trainSet$atemp)
-hist(trainSet$humidity)
-hist(trainSet$windspeed)
-par(mfrow=c(1,1))
 ```
 
 Correlation Matrix
