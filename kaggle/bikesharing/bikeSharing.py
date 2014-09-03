@@ -16,8 +16,8 @@ test_sframe = gl.SFrame.read_csv('test.csv', column_type_hints=test_column_types
 features = ['datetime', 'season', 'holiday', 'workingday', 'weather',
             'temp', 'atemp', 'humidity', 'windspeed']
 m = gl.boosted_trees.create(training_sframe,
-                            feature_columns=features, 
-                            target_column='count', objective='regression',
+                            features=features, 
+                            target='count', objective='regression',
                             num_iterations=100)
 
 
@@ -60,10 +60,10 @@ for col in ['casual', 'registered', 'count']:
 new_features = features + ['year', 'month', 'weekday', 'hour']
 new_features.remove('datetime')
 
-m1 = gl.boosted_trees.create(training_sframe, feature_columns = new_features,
-                             target_column="log-casual")
-m2 = gl.boosted_trees.create(training_sframe, feature_columns = new_features,
-                             target_column="log-registered")
+m1 = gl.boosted_trees.create(training_sframe, features = new_features,
+                             target="log-casual")
+m2 = gl.boosted_trees.create(training_sframe, features = new_features,
+                             target="log-registered")
 
 def fused_predict(m1, m2, test_sframe):
     """
@@ -98,9 +98,9 @@ ntrees = 500
 search_space = {
     'params': {
         'max_depth': [10, 15, 20],
-        'min_child_weight': [5, 10, 20]
+        'min_child_weight': [5, 10, 20],
+        'step_size': 0.05
     },
-    'step_size': 0.05,
     'num_iterations': ntrees
 }
 
@@ -110,11 +110,11 @@ def parameter_search(training_url, validation_url, default_params):
     The parameter returned has the lowest validation rmse.
     """
     job = gl.toolkits.model_parameter_search(env, gl.boosted_trees.create,
-                                             train_set=training_url,
+                                             train_set_path=training_url,
                                              save_path='/tmp/job_output',
                                              standard_model_params=default_params,
                                              hyper_params=search_space,
-                                             test_set=validation_url)
+                                             test_set_path=validation_url)
 
 
     # When the job is done, the result is stored in an SFrame
@@ -146,15 +146,15 @@ params_log_registered = parameter_search('/tmp/training',
 
 
 m_log_registered = gl.boosted_trees.create(training_sframe,
-                                           feature_columns=new_features,
-                                           target_column='log-registered',
+                                           features=new_features,
+                                           target='log-registered',
                                            num_iterations=ntrees,
                                            params=params_log_registered,
                                            verbose=False)
 
 m_log_casual = gl.boosted_trees.create(training_sframe,
-                                       feature_columns=new_features,
-                                       target_column='log-casual',
+                                       features=new_features,
+                                       target='log-casual',
                                        num_iterations=ntrees,
                                        params=params_log_casual,
                                        verbose=False)
