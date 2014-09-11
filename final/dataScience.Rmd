@@ -1,0 +1,221 @@
+Title: Text Mining
+========================================================
+
+Text Mining or Text Analytics applies analytic tools to learn from collections of text documents
+like books, newspapers, emails, etc. T
+
+```{r}
+library(tm) # Framework for text mining.
+library(SnowballC) # Provides wordStem() for stemming.
+library(RColorBrewer) # Generate palette of colours for plots.
+library(ggplot2) # Plot word frequencies.
+library(Rgraphviz) # Correlation plots.
+```
+
+## Loading a Corpus
+## pdftotext/antiword convert a folder
+```{r pdftotext}
+#system("for f in *.pdf; do pdftotext -enc ASCII7 -nopgbrk $f; done")
+#system("for f in *.doc; do antiword $f; done")
+system("for f in *; do ls -l $f; done")
+```
+
+## Getting Ready: Corpus Sources and Readers
+
+```{r }
+getSources()
+getReaders()
+```
+
+## Loading a Corpus: Text Documents
+
+```{r}
+cname <- file.path(".", "en_US", ".")
+cname
+length(dir(cname))
+dir(cname)
+```
+
+```{r loadDoc}
+library(tm)
+#docs <- Corpus(DirSource(cname), readerControl=list(reader=readPDF))
+#docs <- Corpus(DirSource(cname), readerControl=list(reader=readDOC))
+
+docs <- Corpus(DirSource(cname))
+docs
+```
+
+```{r}
+class(docs)
+class(docs[[1]])
+summary(docs)
+```
+
+inspect documents using inspect()
+
+```{r inspectDoc}
+inspect(docs[1])
+```
+
+
+## Preparing the Corpus
+Pre-processing,
+```{r preProcessing}
+getTransformations()
+```
+ The function tm_map() is used to apply the transformations. We will apply the transformations sequentially to remove unwanted characters from the text.
+ 
+```{r replaceSymbol}
+for (j in seq(docs)){
+    docs[[j]] <- gsub("/", " ", docs[[j]])
+    docs[[j]] <- gsub("@", " ", docs[[j]])
+    docs[[j]] <- gsub("\\|", " ", docs[[j]])
+} 
+```
+ 
+ To lower case, removeNumbers, removerPunctuation, stopWords
+```{r preprocess2LowerCase}
+docs <- tm_map(docs, content_transformer(tolower)) # tolower)
+#inspect(docs[[1]])
+docs <- tm_map(docs, removeNumbers)
+docs <- tm_map(docs, removePunctuation)
+docs <- tm_map(docs, removeWords, stopwords("english"))
+stopwords("englisth")
+length(stopwords("english"))
+# remove own stop words
+#docs <- tm_map(docs, removeWords, c("department", "email"))
+docs <- tm_map(docs, stripWhitespace)
+```
+ 
+ 
+#### Stemming
+Stemming uses an algorithm that removes common word ending for English words, such as "es", "ed", and "s". The functionality for stemming is provided by wordStem() from SnowballC.
+```{r stemmingDoc}
+#library(SnowballC)
+docs <- tm_map(docs, stemDocument)
+```
+
+
+##
+```{r}
+#bio <- tm_map(docs[3], grep, pattern="\\<biostats")
+#sum(unlist(bio))
+
+library(RWeka)
+OnegramTokenizer <- function(x) {RWeka::NGramTokenizer(x, 
+                                RWeka::Weka_control(min = 1, max = 1))}
+
+TwogramTokenizer <- function(x) {RWeka::NGramTokenizer(x, 
+                                 RWeka::Weka_control(min = 2, max = 2))}
+
+TrigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, 
+                                RWeka::Weka_control(min = 3, max = 3))}
+```
+## ??
+## Creating a Document Term Matrix
+A document term matrix (document term) is a matrix: documents as the rows and terms as the columns and a count of the frequency of words as teh cells of the matrix. 
+The transpose is created using TermDocumentMatrix()
+```{r creatDocumentTermMatrix}
+dtm <- DocumentTermMatrix(docs)
+dtm
+inspect(dtmp1:2, 100:200)
+class(dtm)
+dim(dtm)
+tdm <- TermDocumentMatrix(docs)
+tdm
+```
+
+
+## Exploring the Document Term Matrix
+```{r exploreMatrix}
+freq <- colSums(as.matrix(dtm))
+length(freq)
+# ordering the frequenies
+ord <- order(freq)
+freq[head(ord)]
+freq[tail(ord)]
+```
+
+## Distribution of Term Frequencies
+```{r freqDist}
+head(table(freq), 15)
+tail(table(freq), 15)
+
+```
+
+## Conversion to Matrix and Save to CSV
+```{r conversionAndSave}
+m <- as.matrix(dtm)
+dim(m)
+```
+
+Removing Sparse Terms
+```{r removeSparse}
+dim(dtm)
+dtms <- removeSparseTerms(dtm, 0.1)
+dim(dtms)
+```
+
+```{r }
+freq <- colSums(as.matrix(dtms))
+freq
+table(freq)
+```
+
+```{r freqItems}
+findFreqTerms(dtm, lowfreq=1000)
+findFreqTerms(dtm, lowfreq=100)
+```
+
+```{r findAssociation}
+findAssocs(dtm, "data", corlimit=0.6)
+```
+
+## Correlations Plots
+
+```{r fig.width=7, fig.height=6}
+plot(dtm,
+    term=findFreqTerms(dtm, lowfreq=100)[1:50],
+    corThreshold=0.5)
+
+#plot(cars)
+```
+
+```{r fig.width=7, fig.height=6}
+freq <- sort(colSums(as.matrix(dtm)), decreasing =TRUE)
+head(freq, 14)
+
+wf <- data.frame(word = names(freq), freq = freq)
+head(wf)
+```
+
+Plot the frequency of those words that occurs at least 500 times
+```{r }
+library(ggplot2)
+p <- ggplot(subset(wf, freq>500), aes(word, freq))
+p <- p + geom_bar(stat="identity")
+p <- p + theme(axis.text.x=element_text(angle=45, hjust=1))
+p
+```
+
+
+## Word Clouds
+```{r rWordClouds}
+library(wordcloud)
+set.seed(123)
+wordcloud(names(freq), freq, min.freq=40)
+```
+```{r rWordClouds}
+set.seed(142)
+wordcloud(names(freq), freq, min.freq=100)
+```
+
+```{r rWordClouds}
+set.seed(142)
+wordcloud(names(freq), freq, min.freq=100, colors=brewer.pal(6, "Dark2"))
+```
+```{r }
+set.seed(142)
+wordcloud(names(freq), freq, min.freq=100, scale=c(5, .1), colors=brewer.pal(6, "Dark2"))
+```
+

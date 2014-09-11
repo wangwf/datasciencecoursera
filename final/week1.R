@@ -11,8 +11,11 @@ ftwitter <- "en_US//en_US.twitter.txt"
 # awk '{ print length(), NR, $0 | "sort -rn" }' en_US/en_US.twitter.txt | head -n 1
 214 1484357
 
+#
 tw <- readLines("en_US/en_US.twitter.txt")
 length(tw)
+head(tw)
+tail(tw)
 
 nlove =0
 nhate =0
@@ -27,6 +30,11 @@ print(nhate)
 ratio = nlove/nhate
 print(ratio)
 
+nlove2 = 0
+nhate2 = 0
+lapply(tw, function(x) if(grep(str1, x))nlove2 = nlove2 +1)
+lapply(tw, function(x) if(grep(str2, x))nhate2 = nhate2 +1)
+
 str3 = "biostats"
 #for( line in 1:length(tw)){ if(grepl(str3, tw[line])) print(tw[line]) }
 lapply(tw, function(x) if(grepl(str3, x))print(x))
@@ -39,15 +47,10 @@ lapply(tw, function(x) if(grep(str4, x))nl = nl+1)
 print(nl)
 
 
-tw <- readLines("en_US/en_US.twitter.txt")
-
-length(tw)
-head(tw)
-tail(tw)
 
 #tw = strsplit(tw, "<<[^>]*>>")[1]
 #length(tw)
-library(tm)  # text mining package
+library(tm)  # load text mining package
 doc.vec <- VectorSource(tw)
 doc.corpus <-Corpus(doc.vec)
 summary(doc.corpus)
