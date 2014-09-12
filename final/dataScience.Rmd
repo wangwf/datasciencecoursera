@@ -30,7 +30,7 @@ getReaders()
 ## Loading a Corpus: Text Documents
 
 ```{r}
-cname <- file.path(".", "en_US", ".")
+cname <- file.path(".", "en_US", "./")
 cname
 length(dir(cname))
 dir(cname)
@@ -41,14 +41,20 @@ library(tm)
 #docs <- Corpus(DirSource(cname), readerControl=list(reader=readPDF))
 #docs <- Corpus(DirSource(cname), readerControl=list(reader=readDOC))
 
-docs <- Corpus(DirSource(cname))
+docs <- Corpus(DirSource(cname, pattern="*twitter*"))
 docs
+#filet ="en_US.twitter.txt"
+#doc1 <- readLines(paste("en_US/", filet, sep=""))
+#docs <- Corpus(VectorSource(doc1))
 ```
 
 ```{r}
 class(docs)
 class(docs[[1]])
 summary(docs)
+```
+
+```{r}
 ```
 
 inspect documents using inspect()
@@ -80,7 +86,7 @@ docs <- tm_map(docs, content_transformer(tolower)) # tolower)
 docs <- tm_map(docs, removeNumbers)
 docs <- tm_map(docs, removePunctuation)
 docs <- tm_map(docs, removeWords, stopwords("english"))
-stopwords("englisth")
+stopwords("english")
 length(stopwords("english"))
 # remove own stop words
 #docs <- tm_map(docs, removeWords, c("department", "email"))
@@ -111,6 +117,16 @@ TwogramTokenizer <- function(x) {RWeka::NGramTokenizer(x,
 TrigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, 
                                 RWeka::Weka_control(min = 3, max = 3))}
 ```
+
+```{r}
+oneG <- OnegramTokenizer(docs[1])
+twoG <- twogramTokenizer(docs[1])
+
+#tdm <- TermDocumentMatrix(docs) # , control = list(wordLengths = c(1, Inf)))
+tdm = TermDocumentMatrix(docs, control = list(tokenize = words, dictionary = wrdList, bounds = list(global = c(2,3))))
+tdm
+```
+
 ## ??
 ## Creating a Document Term Matrix
 A document term matrix (document term) is a matrix: documents as the rows and terms as the columns and a count of the frequency of words as teh cells of the matrix. 
