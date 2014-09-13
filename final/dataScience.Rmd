@@ -10,6 +10,7 @@ library(SnowballC) # Provides wordStem() for stemming.
 library(RColorBrewer) # Generate palette of colours for plots.
 library(ggplot2) # Plot word frequencies.
 library(Rgraphviz) # Correlation plots.
+library(RWeka)
 ```
 
 ## Loading a Corpus
@@ -43,9 +44,11 @@ library(tm)
 
 docs <- Corpus(DirSource(cname, pattern="*twitter*"))
 docs
-#filet ="en_US.twitter.txt"
-#doc1 <- readLines(paste("en_US/", filet, sep=""))
-#docs <- Corpus(VectorSource(doc1))
+
+filet ="en_US/en_US.twitter.txt"
+file.info(filet)
+doc1 <- readLines(filet)
+docs <- Corpus(VectorSource(doc1))
 ```
 
 ```{r}
@@ -123,7 +126,8 @@ oneG <- OnegramTokenizer(docs[1])
 twoG <- twogramTokenizer(docs[1])
 
 #tdm <- TermDocumentMatrix(docs) # , control = list(wordLengths = c(1, Inf)))
-tdm = TermDocumentMatrix(docs, control = list(tokenize = words, dictionary = wrdList, bounds = list(global = c(2,3))))
+#tdm = TermDocumentMatrix(docs, control = list(tokenize = words, dictionary = wrdList, bounds = list(global = c(2,3))))
+tdm <- TermDocumentMatrix(docs, control = list(tokenize = twoG))
 tdm
 ```
 

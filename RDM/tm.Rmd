@@ -1,12 +1,9 @@
+Title: Text Mining
+========================================================
 
-#string1 <- "This is a test. I'd like to test..."
-#strsplit(string1, "\\s+")[[1]]
-# strsplit(x, '(?<![^!?.])\\s+', perl=T)
-#library("RWeka")
-#library(RWekajars)
-#NGramTokenizer(string1,Weka_control(min=1,max=1))
-
+```{r rlib}
 library(SnowballC)
+
 ## Option 1: retrieve tweets from Twitter
 library(twitteR)
 # tweets <- userTimeline("RDataMining", n = 3200)
@@ -20,16 +17,21 @@ if(!file.exists(twitterF)){
     download.file(url, destfile =twitterF)
     
 }
+```
+
+
 ## load tweets into R    
+```{r loadData}
 load(file = twitterF)
-
-
 (n.tweet <- length(tweets))
 ## [1] 320
 tweets[1:5]
+```
+
 
 ## Text Cleaning
 
+```{r textCleaning}
 # convert tweets to a data frame
 # tweets.df <- do.call("rbind", lapply(tweets, as.data.frame))
 tweets.df <- twListToDF(tweets)
@@ -41,19 +43,14 @@ myCorpus <- Corpus(VectorSource(tweets.df$text))
 # convert to lower case # myCorpus <- tm_map(myCorpus, tolower)
 # tm v0.6
 myCorpus <- tm_map(myCorpus, content_transformer(tolower))
-
-
 # remove punctuation
 myCorpus <- tm_map(myCorpus, removePunctuation) 
 # remove numbers
 myCorpus <- tm_map(myCorpus, removeNumbers)
 # remove URLs
 removeURL <- function(x) gsub("http[[:alnum:]]*", "", x)
-
-## ?
 ### myCorpus <- tm_map(myCorpus, removeURL, lazy=TRUE) 
 myCorpus <- tm_map(myCorpus, content_transformer(removeURL))  #??
-
 # add two extra stop words: 'available' and 'via'
 myStopwords <- c(stopwords("english"), "available", "via")
 # remove 'r' and 'big' from stopwords
@@ -66,8 +63,9 @@ myCorpus <- tm_map(myCorpus, removeWords, myStopwords)
 myCorpusCopy <- myCorpus
 # stem words
 myCorpus <- tm_map(myCorpus, stemDocument)
+```
 
-
+```{r inspectText}
 # inspect the first 5 documents (tweets) inspect(myCorpus[1:5]) 
 # The code below is used for to make text fit for paper width 
 for (i in 1:5) {
@@ -75,14 +73,16 @@ for (i in 1:5) {
     #writeLines(myCorpus[[i]])
     writeLines(as.character(myCorpus[[i]]))
 }
+```
 
 
-#  ?? no entries
 # stem completion
+```{r stemWord}
 # myCorpus <- tm_map(myCorpus, content_transformer(stemCompletion), dictionary = myCorpusCopy, lazy=TRUE)
-
+```
 
 ## count frequency of "mining"
+```{r wordFreq}
 #miningCases <- tm_map(myCorpusCopy$content,grep, pattern = "\\<mining")
 #sum(unlist(miningCases))
 
@@ -93,7 +93,9 @@ for (i in 1:5) {
 
 # # replace "miners" with "mining"
 # myCorpus <- tm_map(myCorpus, gsub, pattern = "miners", replacement = "mining")
+```
 
+```{r termDocMat}
 tdm <- TermDocumentMatrix(myCorpus, control = list(wordLengths = c(1, Inf)))
 tdm
 
@@ -107,30 +109,43 @@ inspect(tdm[idx + (0:5), 101:110])
 term.freq <- rowSums(as.matrix(tdm))
 term.freq <- subset(term.freq, term.freq >=5)
 df <- data.frame(term = names(term.freq), freq = term.freq)
+```
 
-
+```{r wordPlot}
 library(ggplot2)
 ggplot(df, aes(x=term, y=freq)) + geom_bar(stat = "identity") + xlab("Terms") + ylab("Count") +coord_flip()
+```
 
+
+```{r wordAssoc}
 # which words are associated with 'r'?
 findAssocs(tdm, "r", 0.2)
 
 # which words are associated with 'mining'?
 findAssocs(tdm, "mining", 0.25)
+```
 
+
+```{r plot1}
 library(graph)
 library(Rgraphviz)
 plot(tdm, term = freq.terms, corThreshold = 0.12, weighting = T)
-           
+```
+
 ## Word Cloud
+```{r wordCloud1}
 library(wordcloud)
 m <- as.matrix(tdm)
 # calculate the frequency of words and sort it by frequency
 word.freq <- sort(rowSums(m), decreasing = T)
 wordcloud(words = names(word.freq), freq = word.freq, min.freq = 3,
           random.order = F)
+```
+
 
 ## Clustering
+
+```{r wordCluster}
 # remove sparse terms
 tdm2 <- removeSparseTerms(tdm, sparse = 0.95)
 m2 <- as.matrix(tdm2)
@@ -146,7 +161,10 @@ set.seed(122) # set a fixed random seed
 k <- 6 # number of clusters
 kmeansResult <- kmeans(m3, k)
 round(kmeansResult$centers, digits = 3) # cluster centers
+```
 
+
+```{r wordCluster2}
 library(fpc)
 # partitioning around medoids with estimation of number of clusters
 pamResult <- pamk(m3, metric="manhattan")
@@ -161,8 +179,11 @@ for (i in 1:k) {
 # plot clustering result
 layout(matrix(c(1, 2), 1, 2)) # set to two graphs per page
 plot(pamResult, col.p = pamResult$clustering)
+```
+
 
 ## Topic Model
+```{r topicModel1}
 dtm <- as.DocumentTermMatrix(tdm)
 library(topicmodels)
 lda <- LDA(dtm, k = 8) # find 8 topics
@@ -177,7 +198,7 @@ topic <- topics(lda, 1)
 topics <- data.frame(date=as.IDate(tweets.df$created), topic)
 qplot(date, ..count.., data=topics, geom="density",
       fill=term[topic], position="stack")
-
+```
 
 
 
