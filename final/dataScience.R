@@ -1,6 +1,7 @@
 #
+#
 # Data Science with R
-
+#
 library(tm)
 library(SnowballC)
 library(RColorBrewer)
